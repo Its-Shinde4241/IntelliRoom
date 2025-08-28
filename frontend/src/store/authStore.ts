@@ -33,7 +33,7 @@ const useStore = create<Store>((set) => ({
             const userCredential: UserCredential | undefined = await loginWithEmail(email, password);
             set({ user: userCredential?.user || null });
             console.log("✅ User logged in:", userCredential?.user);
-            
+
         } catch (error) {
             console.error("❌ Error logging in:", error);
             // Handle login error here, e.g., show a toast notification

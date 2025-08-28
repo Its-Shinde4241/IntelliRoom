@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id
+  name      String
+  email     String   @unique(map: "User_email_key")
+  createdAt DateTime @default(now())
+  room      Room[]   @relation("userrooms")
+}
+
+model Code {
+  id        String   @id @default(uuid())
+  content   String
+  language  String
+  output    String?
+  error     String?
+  roomId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+model Message {
+  id        String   @id
+  content   String
+  userId    String
+  roomId    String
+  createdAt DateTime @default(now())
+  room      Room     @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey")
+
+  @@index([roomId], map: "Message_roomId_fkey")
+}
+
+model Room {
+  id         String      @id
+  name       String
+  password   String
+  createdAt  DateTime    @default(now())
+  code       Code[]
+  message    Message[]
+  user       User[]      @relation("userrooms")
+  webProject webProject?
+}
+
+model webProject {
+  id        String   @id @default(uuid())
+  roomId    String   @unique
+  html      String   @default("")
+  css       String   @default("")
+  js        String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room Room @relation(fields: [roomId], references: [id])
+}

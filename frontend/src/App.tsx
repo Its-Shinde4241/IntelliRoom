@@ -4,13 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import LoginForm from "./components/LoginForm";
 import { Toaster } from "sonner";
+import api from "./lib/api";
 
 export default function App() {
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const socketRef = useRef<WebSocket | null>(null);
+  const [temp, setTemp] = useState<String | null>();
 
   useEffect(() => {
+    api.get("/").then((res) => {
+      setTemp(JSON.stringify(res.data));
+    });
     const socket = new WebSocket("ws://localhost:3001");
     socketRef.current = socket;
 
@@ -69,6 +74,9 @@ export default function App() {
       </div>
       <div>
         <LoginForm />
+      </div>
+      <div>
+        <p>{temp}</p>
       </div>
     </>
   );
