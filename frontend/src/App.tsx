@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import LoginForm from "./components/LoginForm";
 import { Toaster } from "sonner";
-import api from "./lib/api";
+import api from "./lib/axiosInstance";
 
 export default function App() {
   const [messages, setMessages] = useState<string[]>([]);

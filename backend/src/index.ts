@@ -4,6 +4,7 @@ import { WebSocketServer } from "ws";
 
 import cors from "cors";
 import Authrouter from "./routes/authRoutes";
+import authenticate from "./middleware/auth";
 
 const app = express();
 const server = http.createServer(app);
@@ -15,7 +16,6 @@ wss.on("connection", (socket) => {
     socket.on("message", (message) => {
         console.log("📨 Received:", message.toString());
 
-        // Echo back the message
         socket.send(`You said: ${message}`);
     });
 
@@ -24,12 +24,12 @@ wss.on("connection", (socket) => {
     });
 });
 
-
+app.use(express.json());
 app.use(cors({
     origin: "http://localhost:5173", credentials: true
 }))
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
     console.log("Hello World");
     res.send("on intelliroom backend api");
 })
