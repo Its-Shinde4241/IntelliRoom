@@ -15,7 +15,7 @@ export async function upsertUser(firebaseUser: FirebaseUser) {
             update: {
                 name: firebaseUser.displayName || "no name given",
                 email: firebaseUser.email,
-                updatedAt: new Date(),
+                updatedAt: firebaseUser.updatedAt || new Date(),
             },
             create: {
                 id: firebaseUser.uid,

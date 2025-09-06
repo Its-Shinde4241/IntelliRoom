@@ -5,11 +5,15 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup, signOut,
-    getAdditionalUserInfo
+    getAdditionalUserInfo,
+    updateProfile as firebaseupdateProfile,
+    updateEmail as firebaseupdateEmail,
+    updatePassword as firebaseupdatePassword
 } from "firebase/auth";
 import { googleProvider } from "@/lib/firebase";
 
-import api from "@/lib/axiosInstance";
+import { api } from "@/lib/axiosInstance";
+import { reauthenticate } from "@/lib/helper";
 
 type AuthState = {
     user: User | null;
@@ -17,12 +21,14 @@ type AuthState = {
     isSigningUp: boolean;
     isSigningIn: boolean;
     isSigningOut: boolean;
+    isupating: boolean;
     setUser: (user: User | null) => void;
     initAuthListener: () => void;
     signUp: (email: string, Password: string) => void;
     signIn: (email: string, password: string) => void;
     signInwithGoogle: () => void;
     signOut: () => void;
+    updateProfile: (name: string, email: string) => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -31,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     isSigningUp: false,
     isSigningIn: false,
     isSigningOut: false,
+    isupating: false,
 
     setUser: (user) => set({ user }),
 
@@ -118,6 +125,30 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         finally {
             set({ isSigningOut: false });
+        }
+    },
+    updateProfile: async (name?: string, email?: string, password?: string, currpassword?: string) => {
+        try {
+            set({ isupating: true });
+            const auth = getAuth();
+            const curruser = auth.currentUser;
+            if (!curruser) throw new Error("No user is currently signed in.");
+            if (name && email) {
+                await firebaseupdateEmail(curruser, email);
+                await firebaseupdateProfile(curruser, { displayName: name });
+                await api.post("auth/sync", {
+                    uid: curruser.uid,
+                    email: email,
+                    displayName: name
+                });
+            }
+            if (currpassword && curruser.email && password) {
+                await reauthenticate(curruser.email, currpassword);
+                await firebaseupdatePassword(curruser, password);
+            }
+        } catch (error) {
+            console.error("Profile update error:", error);
+            throw error;
         }
     }
 

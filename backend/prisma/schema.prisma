@@ -13,7 +13,7 @@ model User {
   name      String
   email     String   @unique(map: "User_email_key")
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
   room      Room[]   @relation("userrooms")
 }
 
