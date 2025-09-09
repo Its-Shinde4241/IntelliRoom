@@ -24,23 +24,32 @@ import {
 
 const languages = [
   {
-    id: "cpp",
+    id: "54", // Judge0 ID
+    monaco: "cpp", // Monaco syntax highlighting
     label: "C++",
     defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\nint main(){\n  cout << "Hello Boss!";\n  return 0;\n}`,
   },
   {
-    id: "java",
+    id: "62",
+    monaco: "java",
     label: "Java",
     defaultCode: `class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello Boss!");\n  }\n}`,
   },
-  { id: "python", label: "Python", defaultCode: `print("Hello Boss!")` },
   {
-    id: "javascript",
+    id: "71",
+    monaco: "python",
+    label: "Python",
+    defaultCode: `print("Hello Boss!")`,
+  },
+  {
+    id: "63",
+    monaco: "javascript",
     label: "JavaScript",
     defaultCode: `console.log("Hello Boss!");`,
   },
   {
-    id: "typescript",
+    id: "74",
+    monaco: "typescript",
     label: "TypeScript",
     defaultCode: `let msg: string = "Hello Boss!";\nconsole.log(msg);`,
   },
@@ -73,9 +82,12 @@ export default function Header({
 }: HeaderProps) {
   const { state, toggleSidebar } = useSidebar();
 
-  const handleLanguageChange = useCallback((langId: string) => {
-    onLanguageChange(langId);
-  }, [onLanguageChange]);
+  const handleLanguageChange = useCallback(
+    (langId: string) => {
+      onLanguageChange(langId);
+    },
+    [onLanguageChange]
+  );
 
   const handleShare = useCallback(() => {
     if (onShare) {
@@ -184,7 +196,7 @@ export default function Header({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-muted-foreground hover:text-foreground"
+              className="h-8 text-muted-foreground hover:text-foreground hidden md:block"
               onClick={toggleSidebar}
               title="Toggle Sidebar"
             >

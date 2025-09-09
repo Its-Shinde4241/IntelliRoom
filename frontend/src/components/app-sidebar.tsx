@@ -1,13 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  BookOpen,
-  Bot,
-  CodeXml,
-  Settings2,
-  SquareTerminal,
-} from "lucide-react";
+import { BookOpen, Bot, CodeXml, Settings2 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
@@ -71,17 +65,10 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
-  const { state } = useSidebar();
-  // const [logostate, setLogostate] = React.useState(true);
   return (
     <Sidebar collapsible="icon" {...props} className="group relative">
       <SidebarHeader>
-        <AppLogo
-          name="INTELLIROOM"
-          logo={CodeXml}
-          classname={`${state == "collapsed" ? "group-hover:hidden" : ""}`}
-        />
-        <SidebarTrigger className={`${state == "expanded" ? "hidden" : ""}`} />
+        <AppLogo name="INTELLIROOM" logo={CodeXml} />
         <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent>

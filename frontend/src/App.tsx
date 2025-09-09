@@ -56,12 +56,16 @@ export default function App() {
             <Route
               path="rooms/:roomId"
               element={
-                <SidebarProvider>
-                  <AppSidebar />
-                  <SidebarInset className="flex-1 min-w-0">
-                    <RoomPage />
-                  </SidebarInset>
-                </SidebarProvider>
+                user ? (
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset className="flex-1 min-w-0">
+                      <RoomPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                ) : (
+                  <Navigate to={"/auth/signin"} />
+                )
               }
             />
             <Route
