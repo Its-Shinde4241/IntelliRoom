@@ -1,8 +1,32 @@
-import { Request, Response } from "express"
-import { upsertUser } from "../services/user";
+import { prisma } from "../db/prisma";
 
+interface FirebaseUser {
+    uid: string;
+    email: string;
+    displayName?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
 
-export const signup = async (req: Request, res: Response) => {
-    const { uuid, name, email, password } = req.body;
-    
+export async function upsertUser(firebaseUser: FirebaseUser) {
+    try {
+        await prisma.user.upsert({
+            where: { id: firebaseUser.uid },
+            update: {
+                name: firebaseUser.displayName || "no name given",
+                email: firebaseUser.email,
+                updatedAt: firebaseUser.updatedAt || new Date(),
+            },
+            create: {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || "",
+                email: firebaseUser.email,
+                createdAt: firebaseUser.createdAt || new Date(),
+                updatedAt: firebaseUser.updatedAt || new Date(),
+            },
+        });
+    } catch (error) {
+        console.error("Failed to upsert user", error);
+        throw error;
+    }
 }
