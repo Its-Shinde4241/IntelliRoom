@@ -1,8 +1,4 @@
-import {
-  BadgeCheck,
-  ChevronsUpDown,
-  LogOut,
-} from "lucide-react";
+import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,13 +14,17 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSubButton,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { User } from "firebase/auth";
 
-export function NavUser({ user }: { user: User | null }) {
+export function NavUser({
+  user,
+}: {
+  user: { displayName: string; email: string; photoURL: string } | null;
+}) {
   const { isMobile } = useSidebar();
-
+  // console.log("NavUser render", user);
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -32,18 +32,22 @@ export function NavUser({ user }: { user: User | null }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
                   src={user?.photoURL || undefined}
                   alt={user?.displayName || undefined}
                 />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user?.email[0]}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {user?.displayName}
+                  {user?.displayName
+                    ? user?.displayName
+                    : user?.email.split("@")[0]}
                 </span>
                 <span className="truncate text-xs">{user?.email}</span>
               </div>
@@ -63,42 +67,35 @@ export function NavUser({ user }: { user: User | null }) {
                     src={user?.photoURL || undefined}
                     alt={user?.displayName || undefined}
                   />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user?.email[0]}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
-                    {user?.displayName}
+                    {user?.displayName
+                      ? user?.displayName
+                      : user?.email.split("@")[0]}
                   </span>
                   <span className="truncate text-xs">{user?.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
-            {/* <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup> */}
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <BadgeCheck />
-                Account
+                <SidebarMenuSubButton className="cursor-pointer">
+                  <BadgeCheck />
+                  Account
+                </SidebarMenuSubButton>
               </DropdownMenuItem>
-              {/* <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <LogOut />
-              Log out
+              <SidebarMenuSubButton className="text-destructive cursor-pointer focus:text-destructive">
+                <LogOut className="size-4 !text-destructive" />
+                <span className="text-destructive">Log Out</span>
+              </SidebarMenuSubButton>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

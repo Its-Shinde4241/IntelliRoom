@@ -22,7 +22,7 @@ Authrouter.post("/sync", authenticate, async (req, res) => {
         }
 
         await upsertUser({ uid, email, displayName, createdAt, updatedAt });
-
+        
         res.status(200).json({ message: "User synced successfully" });
     } catch (err) {
         console.error(err);

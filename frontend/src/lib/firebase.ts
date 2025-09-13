@@ -1,6 +1,6 @@
 // src/lib/firebase.ts
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence } from "firebase/auth";
 
 // console.log("apiKey:", import.meta.env.VITE_APIKEY);
 // console.log("authDomain:", import.meta.env.VITE_AUTHDOMAIN);
@@ -21,6 +21,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+
+const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence);
+export { auth };
 export const googleProvider = new GoogleAuthProvider();
 

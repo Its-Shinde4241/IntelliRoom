@@ -9,25 +9,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id
+  id        String    @id
   name      String
-  email     String   @unique(map: "User_email_key")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  room      Room[]   @relation("userrooms")
-}
-
-model Code {
-  id        String   @id @default(uuid())
-  content   String
-  language  String
-  output    String?
-  error     String?
-  roomId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  room Room @relation(fields: [roomId], references: [id])
+  email     String    @unique(map: "User_email_key")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  room      Room[]
+  Project   Project[]
 }
 
 model Message {
@@ -42,24 +30,39 @@ model Message {
 }
 
 model Room {
-  id         String      @id
-  name       String
-  password   String
-  createdAt  DateTime    @default(now())
-  code       Code[]
-  message    Message[]
-  user       User[]      @relation("userrooms")
-  webProject webProject?
+  id        String    @id
+  name      String
+  password  String
+  createdAt DateTime  @default(now())
+  files     File[]
+  message   Message[]
+  userId    String
+
+  User User @relation(fields: [userId], references: [id], map: "Room_userId_fkey")
 }
 
-model webProject {
+model File {
   id        String   @id @default(uuid())
-  roomId    String   @unique
-  html      String   @default("")
-  css       String   @default("")
-  js        String   @default("")
+  type      String
+  name      String
+  content   String   @db.Text
+  roomId    String?
+  projectId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  room Room @relation(fields: [roomId], references: [id])
+  room    Room?    @relation(fields: [roomId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files     File[]
+
+  User User @relation(fields: [userId], references: [id])
 }

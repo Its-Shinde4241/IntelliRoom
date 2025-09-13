@@ -8,7 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx ts-node-dev --loader ts-node/esm --respawn src/index.ts",
     "dbpush": "npx prisma db push",
-    "db_generate": "npx prisma generate"
+    "db_generate": "npx prisma generate",
+    "db_studio": "npx prisma studio"
   },
   "keywords": [],
   "author": "",
