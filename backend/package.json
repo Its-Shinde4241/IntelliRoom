@@ -1,15 +1,16 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "types": "module",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx ts-node-dev --loader ts-node/esm --respawn src/index.ts",
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "dbpush": "npx prisma db push",
     "db_generate": "npx prisma generate",
-    "db_studio": "npx prisma studio"
+    "db_studio": "npx prisma studio",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",

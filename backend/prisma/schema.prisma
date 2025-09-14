@@ -14,40 +14,44 @@ model User {
   email     String    @unique(map: "User_email_key")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
-  room      Room[]
-  Project   Project[]
+  rooms      Room[]
+  projects   Project[]
 }
 
-model Message {
-  id        String   @id
-  content   String
-  userId    String
-  roomId    String
-  createdAt DateTime @default(now())
-  room      Room     @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey")
-
-  @@index([roomId], map: "Message_roomId_fkey")
-}
 
 model Room {
   id        String    @id
   name      String
   password  String
   createdAt DateTime  @default(now())
+
+  userId    String
+  User User @relation(fields: [userId], references: [id], map: "Room_userId_fkey")
+
   files     File[]
-  message   Message[]
+  messages  Message[]
+}
+model Message {
+  id        String   @id
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
   userId    String
 
-  User User @relation(fields: [userId], references: [id], map: "Room_userId_fkey")
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey")
+
+  @@index([roomId], map: "Message_roomId_fkey")
 }
 
 model File {
   id        String   @id @default(uuid())
+  roomId    String?
+  projectId String?
   type      String
   name      String
   content   String   @db.Text
-  roomId    String?
-  projectId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 
 export async function getUserFiles(req: Request, res: Response) {
-    const roomId = req.body();
+    const roomId = req.body;
     const result = await prisma.file.findMany({
         where: { roomId: roomId }
     });
@@ -21,4 +21,18 @@ export async function createFile(req: Request, res: Response) {
         }
     });
     res.status(201).json(result);
+}
+
+export async function updateFile(req: Request, res: Response) {
+    const { id, type, name, content, roomId, projectId } = req.body;
+    const result = await prisma.file.update({
+        where: { id: id },
+        data: {
+            type,
+            name,
+            content,
+            roomId,
+            projectId
+        }
+    })
 }

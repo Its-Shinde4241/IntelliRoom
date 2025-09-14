@@ -222,7 +222,6 @@ export default function RoomPage() {
   const toggleTerminal = useCallback(() => {
     setIsTerminalOpen((prev) => {
       const newState = !prev;
-      // Layout editor after terminal toggle
       setTimeout(
         () => {
           if (editorRef.current) {
@@ -251,9 +250,7 @@ export default function RoomPage() {
 
       {/* EDITOR + TERMINAL CONTAINER */}
       <div className="flex-1 flex flex-col overflow-hidden editor-container">
-        {/* MONACO EDITOR SECTION */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          {/* Editor */}
           <div
             className={`flex-1 overflow-hidden ${isTerminalOpen ? "rounded-t-lg" : "rounded-lg"}`}
             style={{
