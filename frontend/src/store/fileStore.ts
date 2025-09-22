@@ -2,17 +2,17 @@ import { create } from "zustand";
 
 export interface File {
   id: string;
-  name: string;  // includes extension
-  type: string;  // e.g., "html", "css", "js"
+  name: string; 
+  type: string;  
   content: string;
   roomId?: string;
   projectId?: string;
-  language?: string;  // Used for syntax highlighting
+  language?: string;  
   lastModified?: Date;
 }
 
 interface FileState {
-  files: File[];  // All files
+  files: File[];  
   activeFile: File | null;
   loading: boolean;
   error: string | null;

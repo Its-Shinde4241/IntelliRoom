@@ -14,33 +14,34 @@ model User {
   email     String    @unique(map: "User_email_key")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
-  rooms      Room[]
-  projects   Project[]
-}
-
-
-model Room {
-  id        String    @id
-  name      String
-  password  String
-  createdAt DateTime  @default(now())
-
-  userId    String
-  User User @relation(fields: [userId], references: [id], map: "Room_userId_fkey")
-
-  files     File[]
+  rooms     Room[]
+  projects  Project[]
   messages  Message[]
 }
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String   @unique(map: "Room_name_key")
+  password  String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], map: "Room_userId_fkey", onDelete: Cascade)
+
+  files    File[]
+  messages Message[]
+}
+
 model Message {
-  id        String   @id
+  id        String   @id @default(uuid())
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  userId    String
 
-  roomId    String
-  room      Room     @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], map: "Message_userId_fkey", onDelete: Cascade)
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey", onDelete: Cascade)
 
   @@index([roomId], map: "Message_roomId_fkey")
 }
@@ -55,18 +56,19 @@ model File {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  room    Room?    @relation(fields: [roomId], references: [id])
-  project Project? @relation(fields: [projectId], references: [id])
+  room    Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([name, type, roomId, projectId])
 }
 
 model Project {
   id        String   @id @default(uuid())
   userId    String
   name      String
-  type      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   files     File[]
 
-  User User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

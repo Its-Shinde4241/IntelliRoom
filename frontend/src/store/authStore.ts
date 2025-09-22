@@ -99,6 +99,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const UserCredentials = await signInWithPopup(auth, googleProvider);
 
             if (getAdditionalUserInfo(UserCredentials)?.isNewUser) {
+                console.log("New user signed in with Google, syncing with backend.", UserCredentials.user.metadata);
                 await api.post("auth/sync", {
                     uid: UserCredentials.user.uid,
                     email: UserCredentials.user.email,

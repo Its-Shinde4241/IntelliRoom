@@ -1,7 +1,11 @@
 import { Router } from "express";
+import { fileController } from "../controller/fileController";
 
-const Filerouter = Router();
+const fileRouter = Router();
 
-Filerouter.get("/", (req, res) => {
-    res.send("File route");
-});
+fileRouter.get("/:fileId", fileController.getFileById);
+fileRouter.post("/", fileController.createFile);
+fileRouter.put("/", fileController.updateFile);
+fileRouter.delete("/", fileController.deleteFile);
+
+export default fileRouter;
