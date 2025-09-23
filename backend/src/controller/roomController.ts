@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 class RoomController {
     private static handleError(res: Response, error: any, message: string): void {
@@ -11,7 +12,17 @@ class RoomController {
     public async getUserRooms(req: Request, res: Response): Promise<void> {
         try {
             const userId = req.params.id;
-            const result = await prisma.room.findMany({ where: { userId: userId } });
+            const result = await prisma.room.findMany({
+                where: { userId: userId }, include: {
+                    files: {
+                        select: {
+                            id: true,
+                            name: true,
+                            type: true,
+                        }
+                    }
+                }
+            });
             res.status(200).json(result);
         } catch (error) {
             RoomController.handleError(res, error, "Failed to fetch rooms");
@@ -31,6 +42,10 @@ class RoomController {
     public async createRoom(req: Request, res: Response): Promise<void> {
         try {
             const { name, password, userId } = req.body;
+            if (!password) {
+                res.status(400).json({ error: "Password is required to create a room" });
+                return;
+            }
             const alreadyExists = await prisma.room.findFirst({
                 where: { name, userId }
             })
@@ -38,11 +53,14 @@ class RoomController {
                 res.status(400).json({ error: "Room with this name already exists for the user" });
                 return;
             }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
             const result = await prisma.room.create({
                 data: {
                     id: crypto.randomUUID(),
                     name,
-                    password,
+                    password: hashedPassword,
                     userId
                 }
             });

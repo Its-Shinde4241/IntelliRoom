@@ -29,9 +29,10 @@ type AuthState = {
     signInwithGoogle: () => void;
     signOut: () => void;
     updateProfile: (name: string, email: string) => void;
+    checkAuth: () => Promise<boolean>; // Fix: Return Promise<boolean>
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     loading: true,
     isSigningUp: false,
@@ -47,6 +48,11 @@ export const useAuthStore = create<AuthState>((set) => ({
             async (user) => {
                 if (user) {
                     set({ user, loading: false });
+                    // Don't block the auth state change for backend verification
+                    // Do it in background
+                    get().checkAuth().catch(error => {
+                        console.error("Background auth check failed:", error);
+                    });
                 } else {
                     set({ user: null, loading: false });
                 }
@@ -54,44 +60,52 @@ export const useAuthStore = create<AuthState>((set) => ({
             (error) => {
                 console.error("Auth state change error:", error);
                 set({ user: null, loading: false });
-                throw error;
             }
         );
     },
+
     signUp: async (email: string, password: string) => {
         try {
             set({ isSigningUp: true });
             const auth = getAuth();
             const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
-            set({ user: userCredentials.user });
-
-            const res = await api.post("auth/sync", {
+            
+            // Sync with backend
+            await api.post("auth/sync", {
                 uid: userCredentials.user.uid,
                 email: userCredentials.user.email,
                 displayName: userCredentials.user.displayName
-            })
-            console.log("User synced with backend:", res.data);
+            });
+            
+            console.log("User synced with backend");
+            set({ user: userCredentials.user });
         } catch (error) {
             console.error("Sign up error:", error);
             throw error;
-        }
-        finally {
+        } finally {
             set({ isSigningUp: false });
         }
     },
+
     signIn: async (email: string, password: string) => {
         try {
             set({ isSigningIn: true });
             const UserCredentials = await signInWithEmailAndPassword(getAuth(), email, password);
             set({ user: UserCredentials.user });
+            
+            // Verify with backend after sign in
+            const isBackendVerified = await get().checkAuth();
+            if (!isBackendVerified) {
+                console.warn("Backend verification failed after sign in");
+            }
         } catch (error) {
             console.error("Sign in error:", error);
             throw error;
-        }
-        finally {
+        } finally {
             set({ isSigningIn: false });
         }
     },
+
     signInwithGoogle: async () => {
         try {
             const auth = getAuth();
@@ -99,22 +113,29 @@ export const useAuthStore = create<AuthState>((set) => ({
             const UserCredentials = await signInWithPopup(auth, googleProvider);
 
             if (getAdditionalUserInfo(UserCredentials)?.isNewUser) {
-                console.log("New user signed in with Google, syncing with backend.", UserCredentials.user.metadata);
+                console.log("New user signed in with Google, syncing with backend.");
                 await api.post("auth/sync", {
                     uid: UserCredentials.user.uid,
                     email: UserCredentials.user.email,
                     displayName: UserCredentials.user.displayName
-                })
+                });
             }
+            
             set({ user: UserCredentials.user });
+            
+            // Verify with backend after Google sign in
+            const isBackendVerified = await get().checkAuth();
+            if (!isBackendVerified) {
+                console.warn("Backend verification failed after Google sign in");
+            }
         } catch (error) {
             console.error("Google sign-in error:", error);
             throw error;
-        }
-        finally {
+        } finally {
             set({ isSigningIn: false });
         }
     },
+
     signOut: async () => {
         try {
             set({ isSigningOut: true });
@@ -123,17 +144,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error) {
             console.error("error in sign out store function:", error);
             throw error;
-        }
-        finally {
+        } finally {
             set({ isSigningOut: false });
         }
     },
+
     updateProfile: async (name?: string, email?: string, password?: string, currpassword?: string) => {
         try {
             set({ isupating: true });
             const auth = getAuth();
             const curruser = auth.currentUser;
             if (!curruser) throw new Error("No user is currently signed in.");
+            
             if (name && email) {
                 await firebaseupdateEmail(curruser, email);
                 await firebaseupdateProfile(curruser, { displayName: name });
@@ -143,6 +165,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                     displayName: name
                 });
             }
+            
             if (currpassword && curruser.email && password) {
                 await reauthenticate(curruser.email, currpassword);
                 await firebaseupdatePassword(curruser, password);
@@ -150,7 +173,45 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch (error) {
             console.error("Profile update error:", error);
             throw error;
+        } finally {
+            set({ isupating: false });
         }
-    }
+    },
 
+    checkAuth: async () => {
+        try {
+            const auth = getAuth();
+            const currentUser = auth.currentUser;
+            
+            if (!currentUser) {
+                set({ user: null });
+                return false;
+            }
+
+            const userToken = await currentUser.getIdToken();
+            const response = await api.get("/auth/checkauth", {
+                headers: {
+                    Authorization: `Bearer ${userToken}`
+                }
+            });
+
+            const data = response.data as { success: boolean };
+
+            if (data.success) {
+                // Only update user if it's different to avoid unnecessary re-renders
+                const currentState = get();
+                if (!currentState.user || currentState.user.uid !== currentUser.uid) {
+                    set({ user: currentUser });
+                }
+                return true;
+            } else {
+                set({ user: null });
+                return false;
+            }
+        } catch (error) {
+            console.error("Check auth error:", error);
+            set({ user: null });
+            return false;
+        }
+    },
 }));

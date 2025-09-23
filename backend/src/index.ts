@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response } from "express";
 import http from "http";
 import { WebSocketServer } from "ws";
 
@@ -11,21 +11,23 @@ import fileRouter from "./routes/fileRoutes";
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
 
-wss.on("connection", (socket) => {
-    console.log("🟢 Client connected");
+// websocket server setup
+// const wss = new WebSocketServer({ server });
 
-    socket.on("message", (message) => {
-        console.log("📨 Received:", message.toString());
+// wss.on("connection", (socket) => {
+//     console.log("🟢 Client connected");
 
-        socket.send(`You said: ${message}`);
-    });
+//     socket.on("message", (message) => {
+//         console.log("📨 Received:", message.toString());
 
-    socket.on("close", () => {
-        console.log("🔴 Client disconnected");
-    });
-});
+//         socket.send(`You said: ${message}`);
+//     });
+
+//     socket.on("close", () => {
+//         console.log("🔴 Client disconnected");
+//     });
+// });
 
 app.use(express.json());
 app.use(cors({
@@ -37,11 +39,10 @@ app.get("/api", (req, res) => {
     res.send("on intelliroom backend api");
 })
 
-app.get("/checkauth", authenticate);
 
 app.use("/api/auth", Authrouter);
 app.use("/api/rooms", authenticate, roomRouter);
-app.use("/api/rooms/files", authenticate, fileRouter);
+app.use("/api/files", authenticate, fileRouter);
 app.use("/api/projects", authenticate, projectRouter);
 
 const PORT = 3001;

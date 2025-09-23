@@ -1,19 +1,16 @@
-"use client";
-
 import * as React from "react";
+import { useEffect } from "react";
 import {
   CodeXml,
   FileCode,
-  FileText,
   FolderIcon,
   Layout,
-  Terminal,
   Plus,
   Search,
   FolderPlus,
 } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main";
+import { NavMain } from "@/components/nav-rooms";
 import { NavUser } from "@/components/nav-user";
 import { AppLogo } from "./AppLogo";
 import {
@@ -30,28 +27,6 @@ import NavProjects from "./nav-projects";
 
 // This is sample data.
 const data = {
-  roomsData: [
-    {
-      id: "1",
-      title: "Main Room",
-      icon: Terminal,
-      files: [
-        { id: "1", name: "chat", type: "cpp" },
-        { id: "2", name: "notes", type: "java" },
-        { id: "3", name: "script", type: "python" },
-      ],
-      isActive: true,
-    },
-    {
-      id: "2",
-      title: "Docs Room",
-      icon: FileText,
-      files: [
-        { id: "4", name: "documentation", type: "python" },
-        { id: "5", name: "api-spec", type: "javascript" },
-      ],
-    },
-  ],
   projectsData: [
     {
       id: "project1",
@@ -89,11 +64,12 @@ const data = {
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useRoomStore from "@/store/roomStore";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
+  const { rooms, getUserRooms } = useRoomStore();
 
-  // Map projectsData to ensure 'type' is a valid union and icon is passed correctly
   const projectsData = data.projectsData.map((project) => ({
     ...project,
     files: project.files.map((file) => ({
@@ -106,12 +82,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const mappedUser =
     (user && user?.displayName) || user?.email || user?.photoURL
       ? {
-          displayName: user.displayName ?? "",
-          email: user.email ?? "",
-          photoURL: user.photoURL ?? "",
+          displayName: user.displayName || "User",
+          email: user.email || "",
+          photoURL: user.photoURL || "",
         }
       : null;
-  // console.log("AppSidebar user", mappedUser);
+
+  useEffect(() => {
+    // console.log("Fetching rooms for user:", user?.uid);
+    getUserRooms(user?.uid as string);
+  }, [user?.uid, getUserRooms]);
+
   return (
     <Sidebar
       collapsible="icon"
@@ -207,7 +188,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       >
         <div className="pr-2">
           <ScrollArea className="flex-1">
-            <NavMain rooms={data.roomsData} />
+            <NavMain rooms={rooms} />
             <NavProjects projects={projectsData} />
           </ScrollArea>
         </div>

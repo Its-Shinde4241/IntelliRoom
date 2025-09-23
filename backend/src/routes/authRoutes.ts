@@ -4,7 +4,27 @@ import authenticate from "../middleware/auth";
 import { prisma } from "../db/prisma";
 
 const Authrouter = Router();
+Authrouter.get("/checkauth", authenticate, (req, res) => {
+    try {
+        const user = (req as any).user;
 
+        res.status(200).json({
+            success: true,
+            user: {
+                uid: user.uid,
+                email: user.email,
+                name: user.name,
+                picture: user.picture,
+            }
+        });
+    } catch (error) {
+        console.error("Checkauth error:", error);
+        res.status(500).json({
+            success: false,
+            error: "Internal server error"
+        });
+    }
+});
 Authrouter.post("/sync", authenticate, async (req, res) => {
     try {
         const { uid, email, displayName, createdAt, updatedAt } = req.body;
@@ -22,7 +42,7 @@ Authrouter.post("/sync", authenticate, async (req, res) => {
         }
 
         await upsertUser({ uid, email, displayName, createdAt, updatedAt });
-        
+
         res.status(200).json({ message: "User synced successfully" });
     } catch (err) {
         console.error(err);

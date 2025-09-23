@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import LoginForm from "./components/LoginForm";
 import Signupform from "./components/auth/Signupform";
 import Signinform from "./components/auth/Signinform";
 import Homepage from "./pages/Homepage";
@@ -33,10 +32,8 @@ export default function App() {
       <Router>
         <Routes>
           {/* Auth Routes */}
-          <Route path="/test" element={<LoginForm />} />
           <Route path="/auth/signup" element={<Signupform />} />
           <Route path="/auth/signin" element={<Signinform />} />
-
           {/* Protected Routes */}
           <Route
             path="/"

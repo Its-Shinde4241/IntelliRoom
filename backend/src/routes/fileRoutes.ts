@@ -5,7 +5,7 @@ const fileRouter = Router();
 
 fileRouter.get("/:fileId", fileController.getFileById);
 fileRouter.post("/", fileController.createFile);
-fileRouter.put("/", fileController.updateFile);
-fileRouter.delete("/", fileController.deleteFile);
+fileRouter.put("/:fileId", fileController.updateFile);
+fileRouter.delete("/:fileId", fileController.deleteFile);
 
 export default fileRouter;

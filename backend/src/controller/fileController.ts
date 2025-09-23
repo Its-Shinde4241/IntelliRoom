@@ -47,9 +47,12 @@ class FileController {
 
     public async updateFile(req: Request, res: Response): Promise<void> {
         try {
-            const { id, type, name, content, roomId, projectId } = req.body;
+            console.log("REQ BODY:", req.body);
+            console.log("REQ PARAMS:", req.params);
+            const { fileId } = req.params;
+            const { type, name, content, roomId, projectId } = req.body;
             const result = await prisma.file.update({
-                where: { id },
+                where: { id: fileId },
                 data: { type, name, content, roomId, projectId }
             });
             res.status(200).json(result);
@@ -60,8 +63,8 @@ class FileController {
 
     public async deleteFile(req: Request, res: Response): Promise<void> {
         try {
-            const { id } = req.body;
-            await prisma.file.delete({ where: { id } });
+            const { fileId } = req.params;
+            await prisma.file.delete({ where: { id: fileId } });
             res.status(204).send();
         } catch (error) {
             FileController.handleError(res, error, "Failed to delete file");

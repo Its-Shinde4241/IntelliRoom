@@ -44,5 +44,5 @@ export const getfileExtension = (fileType: string): string => {
         "javascript": "js",
         "typescript": "ts",
     };
-    return extensionMap[fileType] || "txt";
+    return extensionMap[fileType] || fileType;
 }

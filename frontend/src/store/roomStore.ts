@@ -1,11 +1,21 @@
 import { create } from "zustand";
 import { type File } from './fileStore';
 import { api } from '@/lib/axiosInstance';
+import { toast } from "sonner";
 
+type FileInfo = {
+  id: string;
+  name: string;
+  type: string;
+}
 interface Room {
   id: string;
-  title: string;
-  files: File[];
+  name: string; // Changed from 'title' to match backend
+  password?: string;
+  userId: string;
+  files: FileInfo[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface RoomState {
@@ -13,12 +23,18 @@ interface RoomState {
   activeRoom: Room | null;
   loading: boolean;
   error: string | null;
-  getRooms: () => Promise<void>;
+
+  getUserRooms: (userId: string) => Promise<void>;
   getRoom: (roomId: string) => Promise<void>;
-  createRoom: (title: string) => Promise<void>;
-  updateRoomTitle: (roomId: string, newTitle: string) => Promise<void>;
+  createRoom: (name: string, password?: string, userId?: string) => Promise<void>;
+  updateRoom: (roomId: string, updates: { name?: string; password?: string }) => Promise<void>;
   deleteRoom: (roomId: string) => Promise<void>;
+
+  getRoomFiles: (roomId: string) => Promise<void>;
+
+  setActiveRoom: (room: Room | null) => void;
   clearError: () => void;
+  clearRooms: () => void;
 }
 
 const useRoomStore = create<RoomState>((set, get) => ({
@@ -27,12 +43,14 @@ const useRoomStore = create<RoomState>((set, get) => ({
   loading: false,
   error: null,
 
-  getRooms: async () => {
+  getUserRooms: async (userId: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await api.get<Room[]>('/api/rooms');
+      const response = await api.get<Room[]>(`/rooms/user/${userId}`);
       set({ rooms: response.data });
+      toast.success("Rooms loaded successfully");
     } catch (error) {
+      toast.error("Failed to fetch rooms");
       set({ error: error instanceof Error ? error.message : 'Failed to fetch rooms' });
     } finally {
       set({ loading: false });
@@ -42,41 +60,63 @@ const useRoomStore = create<RoomState>((set, get) => ({
   getRoom: async (roomId: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await api.get<Room>(`/api/rooms/${roomId}`);
+      const response = await api.get<Room>(`/rooms/${roomId}`);
       set({ activeRoom: response.data });
+
+      const rooms = get().rooms;
+      const updatedRooms = rooms.map(room =>
+        room.id === roomId ? response.data : room
+      );
+      set({ rooms: updatedRooms });
+      toast.success("Room loaded successfully");
     } catch (error) {
+      toast.error("Failed to fetch room");
       set({ error: error instanceof Error ? error.message : 'Failed to fetch room' });
     } finally {
       set({ loading: false });
     }
   },
 
-  createRoom: async (title: string) => {
+  createRoom: async (name: string, password?: string, userId?: string) => {
     try {
       set({ loading: true, error: null });
-      const response = await api.post<Room>('/api/rooms', { title });
+      const response = await api.post<Room>('/rooms', {
+        name,
+        password,
+        userId
+      });
       const rooms = get().rooms;
       set({ rooms: [...rooms, response.data] });
+      toast.success(`Room "${name}" created successfully`);
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to create room' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create room';
+      toast.error(errorMessage);
+      set({ error: errorMessage });
+      throw error; // Re-throw to allow caller to handle
     } finally {
       set({ loading: false });
     }
   },
 
-  updateRoomTitle: async (roomId: string, newTitle: string) => {
+  updateRoom: async (roomId: string, updates: { name?: string; password?: string }) => {
     try {
       set({ loading: true, error: null });
-      await api.patch(`/api/rooms/${roomId}`, { title: newTitle });
-      const rooms = get().rooms.map(room => 
-        room.id === roomId ? { ...room, title: newTitle } : room
+      const response = await api.put<Room>(`/rooms/${roomId}`, updates);
+
+      const rooms = get().rooms.map(room =>
+        room.id === roomId ? { ...room, ...response.data } : room
       );
       set({ rooms });
+
       if (get().activeRoom?.id === roomId) {
-        set({ activeRoom: { ...get().activeRoom!, title: newTitle } });
+        set({ activeRoom: { ...get().activeRoom!, ...response.data } });
       }
+      toast.success("Room updated successfully");
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to update room title' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update room';
+      toast.error(errorMessage);
+      set({ error: errorMessage });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -85,20 +125,57 @@ const useRoomStore = create<RoomState>((set, get) => ({
   deleteRoom: async (roomId: string) => {
     try {
       set({ loading: true, error: null });
-      await api.delete(`/api/rooms/${roomId}`);
+      const roomName = get().rooms.find(room => room.id === roomId)?.name || 'Room';
+      await api.delete(`/rooms/${roomId}`);
+
       const rooms = get().rooms.filter(room => room.id !== roomId);
       set({ rooms });
+
       if (get().activeRoom?.id === roomId) {
         set({ activeRoom: null });
       }
+      toast.success(`"${roomName}" deleted successfully`);
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to delete room' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete room';
+      toast.error(errorMessage);
+      set({ error: errorMessage });
+      throw error;
     } finally {
       set({ loading: false });
     }
   },
 
+  getRoomFiles: async (roomId: string) => {
+    try {
+      set({ loading: true, error: null });
+      const response = await api.get<File[]>(`/rooms/${roomId}/files`);
+
+      if (get().activeRoom?.id === roomId) {
+        set({ activeRoom: { ...get().activeRoom!, files: response.data } });
+      }
+
+      const rooms = get().rooms.map(room =>
+        room.id === roomId ? { ...room, files: response.data } : room
+      );
+      set({ rooms });
+      toast.success("Files loaded successfully");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch room files';
+      toast.error(errorMessage);
+      set({ error: errorMessage });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  setActiveRoom: (room: Room | null) => {
+    set({ activeRoom: room });
+  },
+
   clearError: () => set({ error: null }),
+
+  clearRooms: () => set({ rooms: [], activeRoom: null }),
 }));
 
 export default useRoomStore;
+export type { Room };
