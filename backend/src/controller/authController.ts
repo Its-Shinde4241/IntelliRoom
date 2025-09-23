@@ -13,13 +13,13 @@ export async function upsertUser(firebaseUser: FirebaseUser) {
         await prisma.user.upsert({
             where: { id: firebaseUser.uid },
             update: {
-                name: firebaseUser.displayName || "no name given",
+                name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
                 email: firebaseUser.email,
                 updatedAt: firebaseUser.updatedAt || new Date(),
             },
             create: {
                 id: firebaseUser.uid,
-                name: firebaseUser.displayName || "",
+                name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
                 email: firebaseUser.email,
                 createdAt: firebaseUser.createdAt || new Date(),
                 updatedAt: firebaseUser.updatedAt || new Date(),

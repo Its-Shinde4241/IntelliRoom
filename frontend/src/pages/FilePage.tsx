@@ -6,47 +6,49 @@ import Editor, { type OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Terminal as TerminalIcon } from "lucide-react";
 import { toast } from "sonner";
-import Header, { languages } from "../components/Header-comp";
+import Header from "../components/Header-comp";
 import useCodeStore from "@/store/codeStore";
+import useFileStore from "@/store/fileStore";
 import { Separator } from "@radix-ui/react-separator";
 import Terminal from "@/components/Terminal";
 
-export default function RoomPage() {
+export default function FilePage() {
   const params = useParams();
-  const RoomId = params.roomId;
+  const fileId = params.fileId;
 
-  const { runCode, loading, saveCode } = useCodeStore();
+  const {
+    activeFile,
+    loading: fileLoading,
+    getFile,
+    updateFileContent,
+    updateFileName,
+  } = useFileStore();
+  const { runCode, loading: codeLoading } = useCodeStore();
 
-  const [language, setLanguage] = useState(languages[0].id);
-  const [code, setCode] = useState(languages[0].defaultCode);
   const [mode, setMode] = useState<string>("light");
 
   // Terminal state
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
+  const [stdin, setStdin] = useState("");
 
-  const [stdin, setStdin] = useState(""); // input section
+  const layoutTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   const editorRef = useRef<any>(null);
-  const layoutTimeoutRef = useRef<NodeJS.Timeout>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
 
   const [position, setPosition] = useState({ line: 1, column: 1 });
   const [charCount, setCharCount] = useState(0);
 
-  const extensionMap: Record<string, string> = {
-    javascript: "js",
-    typescript: "ts",
-    python: "py",
-    java: "java",
-    cpp: "cpp",
-    c: "c",
-    html: "html",
-    css: "css",
-  };
+  // Load file on mount and file ID change
+  useEffect(() => {
+    if (fileId) {
+      getFile(fileId);
+    }
+  }, [fileId, getFile]);
 
-  // Editor mount
+  // Editor mount handler
   const handleEditorDidMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
     editor.onDidChangeCursorPosition((e) => {
@@ -71,7 +73,7 @@ export default function RoomPage() {
       }
       layoutTimeoutRef.current = setTimeout(() => {
         editorRef.current.layout();
-      }, 10); // Reduced timeout for more responsive resizing
+      }, 10);
     }
     return () => {
       if (layoutTimeoutRef.current) {
@@ -79,6 +81,66 @@ export default function RoomPage() {
       }
     };
   }, [isTerminalOpen, terminalHeight]);
+
+  // Get language from file extension
+  const getLanguageFromFileName = useCallback((fileName: string) => {
+    const ext = fileName.split(".").pop()?.toLowerCase() || "";
+    switch (ext) {
+      case "js":
+        return "javascript";
+      case "ts":
+        return "typescript";
+      case "py":
+        return "python";
+      case "html":
+        return "html";
+      case "css":
+        return "css";
+      case "java":
+        return "java";
+      case "cpp":
+        return "cpp";
+      case "c":
+        return "c";
+      default:
+        return "plaintext";
+    }
+  }, []);
+
+  // Language change handler
+  const handleLanguageChange = useCallback(
+    (langId: string) => {
+      if (!activeFile) return;
+
+      const extensions: Record<string, string> = {
+        javascript: "js",
+        typescript: "ts",
+        python: "py",
+        html: "html",
+        css: "css",
+        java: "java",
+        cpp: "cpp",
+        c: "c",
+      };
+
+      const ext = extensions[langId];
+      if (!ext) return;
+
+      const baseName = activeFile.name.split(".")[0];
+      const newName = `${baseName}.${ext}`;
+      updateFileName(activeFile.id, newName);
+    },
+    [activeFile, updateFileName]
+  );
+
+  // Code change handler
+  const handleCodeChange = useCallback(
+    (value: string | undefined) => {
+      if (!activeFile || !value) return;
+      updateFileContent(activeFile.id, value);
+    },
+    [activeFile, updateFileContent]
+  );
 
   // Terminal resize handling
   useEffect(() => {
@@ -96,7 +158,6 @@ export default function RoomPage() {
       const clampedHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
       setTerminalHeight(clampedHeight);
 
-      // Trigger editor layout during resize
       if (editorRef.current) {
         requestAnimationFrame(() => {
           editorRef.current.layout();
@@ -110,7 +171,6 @@ export default function RoomPage() {
       document.body.style.userSelect = "";
       document.body.style.pointerEvents = "";
 
-      // Final layout after resize
       if (editorRef.current) {
         setTimeout(() => {
           editorRef.current.layout();
@@ -146,79 +206,7 @@ export default function RoomPage() {
     return () => window.removeEventListener("resize", handleWindowResize);
   }, []);
 
-  const handleLanguageChange = useCallback((langId: string) => {
-    const lang = languages.find((l) => l.id === langId)!;
-    setLanguage(langId);
-    setCode(lang.defaultCode);
-  }, []);
-
-  const handleMode = useCallback(() => {
-    setMode((prev) => (prev === "light" ? "vs-dark" : "light"));
-  }, []);
-
-  const handleRun = useCallback(async () => {
-    if (!isTerminalOpen) {
-      setIsTerminalOpen(true);
-    }
-
-    try {
-      await runCode(code, language, stdin);
-      // Auto-scroll terminal output after running
-      setTimeout(() => {
-        if (terminalRef.current) {
-          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-        }
-      }, 300);
-    } catch (error: any) {
-      toast.error(error);
-    }
-  }, [code, language, stdin, runCode, isTerminalOpen]);
-
-  const handleSave = useCallback(() => {
-    saveCode(code, RoomId!);
-    toast("Code saved!", {
-      duration: 1000,
-      style: { width: "auto", minWidth: "fit-content", padding: 6 },
-    });
-  }, [RoomId, code, saveCode]);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toast.success("Copied!", {
-        position: "bottom-right",
-        duration: 1000,
-        style: { width: "auto", minWidth: "fit-content", padding: 6 },
-      });
-    } catch (error) {
-      console.error("Failed to copy:", error);
-    }
-  }, [code]);
-
-  const handleDownload = useCallback(() => {
-    if (!code) return;
-
-    const blob = new Blob([code], { type: "text/plain" });
-    const link = document.createElement("a");
-    const lang = languages
-      .find((l) => l.id === language)
-      ?.monaco?.toLowerCase();
-
-    const ext = lang && extensionMap[lang] ? extensionMap[lang] : "txt";
-
-    link.href = URL.createObjectURL(blob);
-    link.download = `code.${ext}`;
-    document.body.appendChild(link); // ensures Firefox compatibility
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => URL.revokeObjectURL(link.href), 100);
-  }, [code, language]);
-
-  const handleCodeChange = useCallback((val: string | undefined) => {
-    setCode(val || "");
-  }, []);
-
+  // Terminal toggle handler
   const toggleTerminal = useCallback(() => {
     setIsTerminalOpen((prev) => {
       const newState = !prev;
@@ -229,50 +217,109 @@ export default function RoomPage() {
           }
         },
         newState ? 200 : 100
-      ); // Longer delay when opening
+      );
       return newState;
     });
   }, []);
 
+  // Handle code execution
+  const handleRun = useCallback(async () => {
+    if (!activeFile) return;
+
+    if (!isTerminalOpen) {
+      setIsTerminalOpen(true);
+    }
+
+    try {
+      const language = getLanguageFromFileName(activeFile.name);
+      await runCode(activeFile.content, language, stdin);
+      setTimeout(() => {
+        if (terminalRef.current) {
+          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+      }, 300);
+    } catch (error: any) {
+      toast.error(error);
+    }
+  }, [activeFile, getLanguageFromFileName, stdin, runCode, isTerminalOpen]);
+
+  // Handle file save
+  const handleSave = useCallback(() => {
+    if (!activeFile) return;
+    updateFileContent(activeFile.id, activeFile.content);
+    toast.success("File saved!", {
+      duration: 1000,
+      style: { width: "auto", minWidth: "fit-content", padding: 6 },
+    });
+  }, [activeFile, updateFileContent]);
+
+  // Handle copy to clipboard
+  const handleCopy = useCallback(async () => {
+    if (!activeFile) return;
+    try {
+      await navigator.clipboard.writeText(activeFile.content);
+      toast.success("Copied to clipboard!", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast.error("Failed to copy to clipboard");
+    }
+  }, [activeFile]);
+
+  // Handle file download
+  const handleDownload = useCallback(() => {
+    if (!activeFile) return;
+
+    const blob = new Blob([activeFile.content], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = activeFile.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(link.href), 100);
+  }, [activeFile]);
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       <Header
-        language={language}
+        language={
+          activeFile ? getLanguageFromFileName(activeFile.name) : "plaintext"
+        }
         onLanguageChange={handleLanguageChange}
         mode={mode}
-        onModeToggle={handleMode}
+        onModeToggle={() =>
+          setMode((prev) => (prev === "light" ? "vs-dark" : "light"))
+        }
         onRun={handleRun}
         onSave={handleSave}
         onCopy={handleCopy}
         onDownload={handleDownload}
-        isCompiling={loading}
+        isCompiling={codeLoading || fileLoading}
       />
 
       {/* EDITOR + TERMINAL CONTAINER */}
       <div className="flex-1 flex flex-col overflow-hidden editor-container">
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <div
-            className={`flex-1 overflow-hidden ${isTerminalOpen ? "rounded-t-lg" : "rounded-lg"}`}
-            style={{
-              height: isTerminalOpen
-                ? `calc(100% - ${terminalHeight}px)`
-                : "100%",
-              transition: "height 0.2s ease-out",
-            }}
-          >
+          <div className="flex-1 overflow-hidden relative">
             <Editor
-              className="h-full w-full"
+              height={
+                isTerminalOpen ? `calc(100% - ${terminalHeight}px)` : "100%"
+              }
               theme={mode}
               language={
-                languages.find((l) => l.id === language)?.monaco || "plaintext"
+                activeFile
+                  ? getLanguageFromFileName(activeFile.name)
+                  : "plaintext"
               }
-              value={code}
+              value={activeFile?.content || ""}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
               options={{
                 fontSize: 16,
                 minimap: { enabled: true, scale: 2 },
-                automaticLayout: true,
                 scrollBeyondLastLine: false,
                 smoothScrolling: true,
                 cursorBlinking: "smooth",
@@ -298,14 +345,14 @@ export default function RoomPage() {
                 className="w-[1px] h-3 bg-border"
               />
               <span>{charCount} chars</span>
-              {loading && (
+              {(codeLoading || fileLoading) && (
                 <>
                   <Separator
                     orientation="vertical"
                     className="w-[1px] h-3 bg-border"
                   />
                   <span className="text-yellow-600 animate-pulse">
-                    Compiling...
+                    Loading...
                   </span>
                 </>
               )}

@@ -27,3 +27,4 @@ dist-ssr
 /generated
 .env
 serviceAccountKey.json
+deployment.json

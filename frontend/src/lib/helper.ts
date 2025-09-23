@@ -33,3 +33,16 @@ export function getFirebaseErrorMessage(error: any): string {
 
     return errorMap[code] || "An unexpected error occurred";
 }
+
+export const getfileExtension = (fileType: string): string => {
+    const extensionMap: Record<string, string> = {
+        "html": "html",
+        "css": "css",
+        "python": "py",
+        "java": "java",
+        "cpp": "cpp",
+        "javascript": "js",
+        "typescript": "ts",
+    };
+    return extensionMap[fileType] || fileType;
+}

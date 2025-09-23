@@ -23,7 +23,6 @@ type CodeStore = {
     saveCode: (code: string, roomId: string) => void;
 };
 
-const JS_LANG_IDS = [63, 74]; // Example: Judge0 language IDs for JS/TS
 
 const useCodeStore = create<CodeStore>((set) => ({
     loading: false,
@@ -38,23 +37,33 @@ const useCodeStore = create<CodeStore>((set) => ({
             // If language is JS or TS (run in-browser)
             if (Number(langId) === 63) {
                 try {
-                    let output = "";
-                    // Redirect console.log
+                    let logs: string[] = [];
                     const originalLog = console.log;
+
+                    // Capture logs
                     console.log = (...args: any[]) => {
-                        output += args.join(" ") + "\n";
+                        const msg = args.join(" ");
+                        logs.push(msg);
+
+                        // Still log to browser console
+                        originalLog.apply(console, args);
+
+                        // Update Zustand from our buffer
+                        set({ output: logs.join("\n"), error: null });
                     };
 
-                    // Run the code safely
-                    eval(code);
+                    // Wrap eval in async IIFE so await works
+                    await (async () => {
+                        eval(code);
+                    })();
 
                     console.log = originalLog; // restore
-                    set({ output, error: null });
                 } catch (e: any) {
                     set({ output: null, error: e.message || String(e) });
                 }
                 return;
             }
+
 
             // Otherwise, use Judge0
             const { data } = await axiosJudge0.post<Judge0SubmissionResponse>(
@@ -71,9 +80,8 @@ const useCodeStore = create<CodeStore>((set) => ({
             let result: Judge0Result | null = null;
             while (true) {
                 const res = await axiosJudge0.get<Judge0Result>(
-                    `/submissions/${token}?base64_encoded=false&fields=*`
+                    `/submissions/${token}?base64_encoded=true&fields=*`
                 );
-
                 if (res.data.status.id <= 2) {
                     await new Promise((r) => setTimeout(r, 1500));
                 } else {
@@ -82,10 +90,14 @@ const useCodeStore = create<CodeStore>((set) => ({
                 }
             }
 
+            const decode = (val: string | null) =>
+                val ? atob(val) : null;
+
             set({
-                output: result?.stdout || null,
-                error: result?.stderr || result?.compile_output || null,
+                output: decode(result?.stdout) || null,
+                error: decode(result?.stderr) || decode(result?.compile_output) || null,
             });
+
         } catch (err: any) {
             console.error("Error while running code:", err.response?.data || err);
             throw err.response.data.message;

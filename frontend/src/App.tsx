@@ -1,87 +1,74 @@
 import { Toaster } from "sonner";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
-import LoginForm from "./components/LoginForm";
+import { Loader2 } from "lucide-react";
 import Signupform from "./components/auth/Signupform";
 import Signinform from "./components/auth/Signinform";
-import { Loader2 } from "lucide-react";
 import Homepage from "./pages/Homepage";
-import { SidebarInset, SidebarProvider } from "./components/ui/sidebar";
-import { AppSidebar } from "./components/app-sidebar";
 import RoomPage from "./pages/RoomPage";
 import ProjectPage from "./pages/ProjectPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import FilePage from "./pages/FilePage";
 
 export default function App() {
-  const { user, loading, initAuthListener } = useAuthStore();
+  const { loading, initAuthListener } = useAuthStore();
+
   useEffect(() => {
     initAuthListener();
   }, [initAuthListener]);
 
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-10 w-10 text-primary" />
+      </div>
+    );
+  }
+
   return (
     <>
       <Toaster richColors />
-      {loading ? (
-        <center className="h-screen flex items-center justify-center">
-          <Loader2 className="animate-spin h-10 w-10 text-primary" />
-        </center>
-      ) : (
-        <Router>
-          <Routes>
-            <Route path="/test" element={<LoginForm />} />
-            <Route path="/auth/signup" element={<Signupform />} />
-            <Route path="/auth/signin" element={<Signinform />} />
-            <Route
-              path="/"
-              element={
-                user ? (
-                  <>
-                    <SidebarProvider>
-                      <AppSidebar />
-                      <SidebarInset className="flex-1 min-w-0">
-                        <Homepage />
-                      </SidebarInset>
-                    </SidebarProvider>
-                  </>
-                ) : (
-                  <Navigate to={"/auth/signin"} />
-                )
-              }
-            />
-            <Route
-              path="rooms/:roomId"
-              element={
-                user ? (
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset className="flex-1 min-w-0">
-                      <RoomPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                ) : (
-                  <Navigate to={"/auth/signin"} />
-                )
-              }
-            />
-            <Route
-              path="projects/:projectId"
-              element={
-                <SidebarProvider>
-                  <AppSidebar />
-                  <SidebarInset>
-                    <ProjectPage />
-                  </SidebarInset>
-                </SidebarProvider>
-              }
-            />
-          </Routes>
-        </Router>
-      )}
+      <Router>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/auth/signup" element={<Signupform />} />
+          <Route path="/auth/signin" element={<Signinform />} />
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Homepage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/room/:roomId"
+            element={
+              <ProtectedRoute>
+                <RoomPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/room/:roomId/file/:fileId"
+            element={
+              <ProtectedRoute>
+                <FilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
     </>
   );
 }

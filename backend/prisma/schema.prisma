@@ -9,57 +9,68 @@ datasource db {
 }
 
 model User {
-  id        String   @id
+  id        String    @id
   name      String
-  email     String   @unique(map: "User_email_key")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  room      Room[]   @relation("userrooms")
+  email     String    @unique(map: "User_email_key")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  rooms     Room[]
+  projects  Project[]
+  messages  Message[]
 }
 
-model Code {
+model Room {
   id        String   @id @default(uuid())
-  content   String
-  language  String
-  output    String?
-  error     String?
-  roomId    String
+  name      String   
+  password  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  room Room @relation(fields: [roomId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id], map: "Room_userId_fkey", onDelete: Cascade)
+
+  files    File[]
+  messages Message[]
+
+  @@unique([name, userId], map: "room_name_userId_key")
 }
 
 model Message {
-  id        String   @id
+  id        String   @id @default(uuid())
   content   String
-  userId    String
-  roomId    String
   createdAt DateTime @default(now())
-  room      Room     @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey")
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], map: "Message_userId_fkey", onDelete: Cascade)
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey", onDelete: Cascade)
 
   @@index([roomId], map: "Message_roomId_fkey")
 }
 
-model Room {
-  id         String      @id
-  name       String
-  password   String
-  createdAt  DateTime    @default(now())
-  code       Code[]
-  message    Message[]
-  user       User[]      @relation("userrooms")
-  webProject webProject?
-}
-
-model webProject {
+model File {
   id        String   @id @default(uuid())
-  roomId    String   @unique
-  html      String   @default("")
-  css       String   @default("")
-  js        String   @default("")
+  roomId    String?
+  projectId String?
+  type      String
+  name      String
+  content   String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  room Room @relation(fields: [roomId], references: [id])
+  room    Room?    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([name, type, roomId, projectId])
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  files     File[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
