@@ -10,7 +10,7 @@ import {
   FolderPlus,
 } from "lucide-react";
 
-import { NavMain } from "@/components/nav-rooms";
+import { NavRooms } from "@/components/nav-rooms";
 import { NavUser } from "@/components/nav-user";
 import { AppLogo } from "./AppLogo";
 import {
@@ -65,10 +65,12 @@ import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useRoomStore from "@/store/roomStore";
+import useFileStore from "@/store/fileStore";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
-  const { rooms, getUserRooms } = useRoomStore();
+  const { rooms, getUserRooms, deleteRoom, updateRoom } = useRoomStore();
+  const { createFile } = useFileStore();
 
   const projectsData = data.projectsData.map((project) => ({
     ...project,
@@ -188,7 +190,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       >
         <div className="pr-2">
           <ScrollArea className="flex-1">
-            <NavMain rooms={rooms} />
+            <NavRooms
+              rooms={rooms}
+              onAddFile={createFile}
+              onRenameRoom={updateRoom}
+            />
             <NavProjects projects={projectsData} />
           </ScrollArea>
         </div>

@@ -1,11 +1,4 @@
 import { useCallback } from "react";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Separator } from "@radix-ui/react-separator";
 import { Button } from "@/components/ui/button";
@@ -21,6 +14,7 @@ import {
   Minimize2,
   Share2,
 } from "lucide-react";
+import { Badge } from "./ui/badge";
 
 const languages = [
   {
@@ -57,7 +51,6 @@ const languages = [
 
 interface HeaderProps {
   language: string;
-  onLanguageChange: (langId: string) => void;
   mode: string;
   onModeToggle: () => void;
   onRun: () => void;
@@ -70,7 +63,6 @@ interface HeaderProps {
 
 export default function Header({
   language,
-  onLanguageChange,
   mode,
   onModeToggle,
   onRun,
@@ -81,14 +73,6 @@ export default function Header({
   isCompiling,
 }: HeaderProps) {
   const { state, toggleSidebar } = useSidebar();
-
-  const handleLanguageChange = useCallback(
-    (langId: string) => {
-      onLanguageChange(langId);
-    },
-    [onLanguageChange]
-  );
-
   const handleShare = useCallback(() => {
     if (onShare) {
       onShare();
@@ -102,22 +86,16 @@ export default function Header({
       <div className="flex items-center gap-2 px-4 w-full">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />
+        <div></div>
 
         {/* RIGHT CONTROLS */}
         <div className="flex items-center gap-4 ml-auto">
           {/* Language selector */}
-          <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Select Language" />
-            </SelectTrigger>
-            <SelectContent>
-              {languages.map((lang) => (
-                <SelectItem key={lang.id} value={lang.id}>
-                  {lang.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Badge variant={"outline"} className="cursor-pointer">
+            {language == "-1"
+              ? "txt"
+              : languages.find((lang) => lang.id === language)?.label}
+          </Badge>
 
           {/* Mode selector */}
           <Button
@@ -136,20 +114,22 @@ export default function Header({
 
           {/* ACTION BUTTONS */}
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRun}
-              disabled={isCompiling}
-              className="h-8 gap-2 text-green-600 hover:bg-green-100 hover:text-green-700"
-              title="Run Code"
-            >
-              {isCompiling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-            </Button>
+            {language !== "-1" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRun}
+                disabled={isCompiling}
+                className="h-8 gap-2 text-green-600 hover:bg-green-100 hover:text-green-700"
+                title="Run Code"
+              >
+                {isCompiling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+            )}
 
             <Button
               variant="ghost"

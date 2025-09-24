@@ -2,6 +2,7 @@
 
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
+import { SAMPLE_CODES } from "../lib/constants";
 
 class FileController {
 
@@ -21,12 +22,13 @@ class FileController {
             }
         } catch (error) {
             FileController.handleError(res, error, "Failed to fetch file");
+            console.error("Failed to fetch file:", error);
         }
     }
 
     public async createFile(req: Request, res: Response): Promise<void> {
         try {
-            const { type, name, content, roomId, projectId } = req.body;
+            const { type, name, roomId, projectId } = req.body;
 
             const existingFile = await prisma.file.findFirst({
                 where: { name, type, roomId, projectId }
@@ -37,7 +39,7 @@ class FileController {
                 return;
             }
             const result = await prisma.file.create({
-                data: { type, name, content, roomId, projectId }
+                data: { type, name, content: SAMPLE_CODES[type as keyof typeof SAMPLE_CODES], roomId, projectId }
             });
             res.status(201).json(result);
         } catch (error) {
@@ -47,8 +49,8 @@ class FileController {
 
     public async updateFile(req: Request, res: Response): Promise<void> {
         try {
-            console.log("REQ BODY:", req.body);
-            console.log("REQ PARAMS:", req.params);
+            // console.log("REQ BODY:", req.body);
+            // console.log("REQ PARAMS:", req.params);
             const { fileId } = req.params;
             const { type, name, content, roomId, projectId } = req.body;
             const result = await prisma.file.update({

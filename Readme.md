@@ -6,7 +6,7 @@ A collaborative real-time code editor with integrated compilation and execution 
 
 - **Real-time Collaborative Editing** - Multiple users can code together in shared rooms
 - **Multi-language Support** - Support for C++, Java, Python, JavaScript, TypeScript, HTML, CSS
-- **Integrated Terminal** - Run code directly in the browser with input/output handling  
+- **Integrated Terminal** - Run code directly in the browser with input/output handling
 - **File Management** - Create, edit, rename, and delete files within rooms and projects
 - **Authentication** - Secure user authentication with Firebase Auth (Email/Password + Google OAuth)
 - **Room & Project System** - Organize code into rooms for collaboration or projects for personal work
@@ -16,6 +16,7 @@ A collaborative real-time code editor with integrated compilation and execution 
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development and building
 - **Monaco Editor** for code editing experience
@@ -26,6 +27,7 @@ A collaborative real-time code editor with integrated compilation and execution 
 - **React Router** for navigation
 
 ### Backend
+
 - **Node.js** with Express
 - **TypeScript** for type safety
 - **Prisma** as ORM with MySQL database
@@ -144,7 +146,7 @@ The application uses the following main entities:
 
 - **User** - User authentication and profile data
 - **Room** - Collaborative coding rooms
-- **Project** - Personal coding projects  
+- **Project** - Personal coding projects
 - **File** - Code files belonging to rooms or projects
 - **Message** - Chat messages in rooms
 
@@ -173,23 +175,27 @@ npm run lint         # Run ESLint
 ## 🌐 API Routes
 
 ### Authentication
+
 - `POST /api/auth/signup` - Create new user account
 - `POST /api/auth/signin` - Sign in user
 - `POST /api/auth/signout` - Sign out user
 
 ### Rooms
+
 - `GET /api/rooms/user/:userId` - Get user's rooms
 - `POST /api/rooms` - Create new room
 - `PUT /api/rooms/:roomId` - Update room
 - `DELETE /api/rooms/:roomId` - Delete room
 
 ### Files
+
 - `GET /api/files/:fileId` - Get file by ID
 - `POST /api/files` - Create new file
 - `PUT /api/files/:fileId` - Update file
 - `DELETE /api/files/:fileId` - Delete file
 
 ### Projects
+
 - `GET /api/projects/user/:userId` - Get user's projects
 - `POST /api/projects` - Create new project
 - `PUT /api/projects/:projectId` - Update project
@@ -198,17 +204,21 @@ npm run lint         # Run ESLint
 ## 🎯 Key Features Explained
 
 ### Code Execution
+
 The application integrates with Judge0 API to execute code in multiple languages:
+
 - Supports C++, Java, Python, JavaScript, TypeScript
 - Real-time compilation and execution feedback
 - Input/output handling through integrated terminal
 
 ### Real-time Collaboration
+
 - Room-based collaboration system
 - Real-time file editing and synchronization
 - User presence indicators
 
 ### File Management
+
 - Hierarchical file organization
 - Support for multiple file types
 - Real-time file operations (create, rename, delete)
@@ -218,27 +228,20 @@ The application integrates with Judge0 API to execute code in multiple languages
 1. Users can sign up/in with email/password or Google OAuth
 2. Firebase handles authentication on the frontend
 3. Backend verifies Firebase ID tokens for API access
-4. JWT tokens used for maintaining session state
 
 ## 🚀 Deployment
 
 ### Backend Deployment
+
 1. Build the application: `npm run build`
 2. Set production environment variables
 3. Deploy to your preferred platform (Heroku, Railway, DigitalOcean, etc.)
 
 ### Frontend Deployment
+
 1. Build the application: `npm run build`
 2. Deploy the `dist` folder to a static hosting service (Vercel, Netlify, etc.)
 3. Update API base URL for production
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
 
 ## 📝 License
 
@@ -246,7 +249,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🛟 Support
 
-For support, email [your-email] or open an issue in the GitHub repository.
+For support, [email](shindeshubham4241@gmail.com) or open an issue in the GitHub repository.
 
 ## 🙏 Acknowledgments
 
