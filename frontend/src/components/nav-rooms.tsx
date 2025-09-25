@@ -30,10 +30,14 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { getfileExtension } from "@/lib/helper";
+import { toast } from "sonner";
+import NewFilePopover from "./NewFilePopover";
+import UpdateRoomPopover from "./UpdateRoomPopover";
+import type { CreateFileData } from "@/store/fileStore";
 
 interface Room {
   id: string;
-  name: string; // Changed from 'title' to match backend
+  name: string;
   password?: string;
   userId: string;
   files: { id: string; name: string; type: string }[];
@@ -41,28 +45,32 @@ interface Room {
   updatedAt?: string;
 }
 
-interface NavMainProps {
+interface NavRoomsProps {
   rooms: Room[];
   onRenameFile?: (roomId: string, fileId: string, newName: string) => void;
   onDeleteFile?: (roomId: string, fileId: string) => void;
-  onRenameRoom?: (roomId: string, newName: string) => void;
+  onRenameRoom: (
+    roomId: string,
+    updates: { name?: string | undefined; password?: string | undefined }
+  ) => Promise<void>;
   onDeleteRoom?: (roomId: string) => void;
+  onAddFile: (fileData: CreateFileData) => Promise<string>;
 }
 
-export function NavMain({
+export function NavRooms({
   rooms,
   onRenameFile,
   onDeleteFile,
   onRenameRoom,
   onDeleteRoom,
-}: NavMainProps) {
+  onAddFile,
+}: NavRoomsProps) {
   const navigate = useNavigate();
   const { roomId: activeRoomId } = useParams<{ roomId: string }>();
   const [openRooms, setOpenRooms] = useState<Set<string>>(
     new Set(activeRoomId ? [activeRoomId] : [])
   );
-  // console.log("Rooms in NavMain:", rooms);
-  // console.log("Active Room ID:", activeRoomId);
+  const [activeRoomForNewFile, setActiveRoomForNewFile] = useState<string>("");
 
   const handleFileClick = (roomId: string, fileId: string) => {
     navigate(`/room/${roomId}/file/${fileId}`);
@@ -105,13 +113,19 @@ export function NavMain({
     }
   };
 
-  const handleRenameRoom = (roomId: string) => {
-    const room = rooms.find((r) => r.id === roomId);
-    if (!room) return;
-
-    const newName = prompt("Enter new room name:", room.name);
-    if (newName && newName !== room.name) {
-      onRenameRoom?.(roomId, newName);
+  const handleUpdateRoom = async (roomId: string, newName: string) => {
+    try {
+      await onRenameRoom(roomId, { name: newName });
+      toast.success(`Room renamed to "${newName}"`, {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch (error) {
+      toast.error("Failed to rename room", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+      console.error("Error renaming room:", error);
     }
   };
 
@@ -120,6 +134,27 @@ export function NavMain({
       confirm("Are you sure you want to delete this room and all its files?")
     ) {
       onDeleteRoom?.(roomId);
+    }
+  };
+
+  const handleCreateFile = async (fileName: string, fileType: string) => {
+    try {
+      const newFileId = await onAddFile({
+        name: fileName,
+        type: fileType,
+        roomId: activeRoomForNewFile,
+      });
+      handleFileClick(activeRoomForNewFile, newFileId);
+      toast.success(`File "${fileName}" created successfully`, {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch (error) {
+      toast.error("Failed to create file", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+      console.error("Error creating file:", error);
     }
   };
 
@@ -164,10 +199,15 @@ export function NavMain({
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="">
-                    <ContextMenuItem onClick={() => handleRenameRoom(room.id)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Rename Room
-                    </ContextMenuItem>
+                    <div onClick={() => setActiveRoomForNewFile(room.id)}>
+                      <NewFilePopover onCreateFile={handleCreateFile} />
+                    </div>
+                    <UpdateRoomPopover
+                      currentRoomName={room.name}
+                      onUpdateRoom={(newName: string) =>
+                        handleUpdateRoom(room.id, newName)
+                      }
+                    />
                     <ContextMenuItem
                       onClick={() => handleDeleteRoom(room.id)}
                       className="text-destructive focus:text-destructive"
@@ -184,7 +224,10 @@ data-[state=open]:slide-in-from-top-2"
                 >
                   <SidebarMenuSub className="animate-in slide-in-from-top-2 duration-300 ease-in-out">
                     {room.files.map((file) => (
-                      <SidebarMenuSubItem key={file.id} className="animate-in fade-in-0 slide-in-from-left-2 duration-200 ease-in-out">
+                      <SidebarMenuSubItem
+                        key={file.id}
+                        className="animate-in fade-in-0 slide-in-from-left-2 duration-200 ease-in-out"
+                      >
                         <ContextMenu>
                           <ContextMenuTrigger asChild>
                             <div className="flex items-center">

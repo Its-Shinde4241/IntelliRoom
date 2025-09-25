@@ -47,12 +47,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         onAuthStateChanged(auth,
             async (user) => {
                 if (user) {
-                    set({ user, loading: false });
-                    // Don't block the auth state change for backend verification
-                    // Do it in background
                     get().checkAuth().catch(error => {
                         console.error("Background auth check failed:", error);
                     });
+                    set({ user, loading: false });
+
                 } else {
                     set({ user: null, loading: false });
                 }
@@ -69,14 +68,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ isSigningUp: true });
             const auth = getAuth();
             const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
-            
+
             // Sync with backend
             await api.post("auth/sync", {
                 uid: userCredentials.user.uid,
                 email: userCredentials.user.email,
                 displayName: userCredentials.user.displayName
             });
-            
+
             console.log("User synced with backend");
             set({ user: userCredentials.user });
         } catch (error) {
@@ -92,7 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ isSigningIn: true });
             const UserCredentials = await signInWithEmailAndPassword(getAuth(), email, password);
             set({ user: UserCredentials.user });
-            
+
             // Verify with backend after sign in
             const isBackendVerified = await get().checkAuth();
             if (!isBackendVerified) {
@@ -120,9 +119,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     displayName: UserCredentials.user.displayName
                 });
             }
-            
+
             set({ user: UserCredentials.user });
-            
+
             // Verify with backend after Google sign in
             const isBackendVerified = await get().checkAuth();
             if (!isBackendVerified) {
@@ -155,7 +154,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             const auth = getAuth();
             const curruser = auth.currentUser;
             if (!curruser) throw new Error("No user is currently signed in.");
-            
+
             if (name && email) {
                 await firebaseupdateEmail(curruser, email);
                 await firebaseupdateProfile(curruser, { displayName: name });
@@ -165,7 +164,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     displayName: name
                 });
             }
-            
+
             if (currpassword && curruser.email && password) {
                 await reauthenticate(curruser.email, currpassword);
                 await firebaseupdatePassword(curruser, password);
@@ -182,7 +181,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             const auth = getAuth();
             const currentUser = auth.currentUser;
-            
+
             if (!currentUser) {
                 set({ user: null });
                 return false;

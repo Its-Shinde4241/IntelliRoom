@@ -1,6 +1,6 @@
 import express, { Response } from "express";
 import http from "http";
-import { WebSocketServer } from "ws";
+// import { WebSocketServer } from "ws";
 
 import cors from "cors";
 import Authrouter from "./routes/authRoutes";

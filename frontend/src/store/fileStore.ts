@@ -15,7 +15,6 @@ export interface File {
 export interface CreateFileData {
   name: string;
   type: string;
-  content: string;
   roomId?: string;
   projectId?: string;
 }
@@ -147,7 +146,7 @@ const useFileStore = create<FileState>((set, get) => ({
   updateFile: async (fileData: UpdateFileData) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.put("/files", fileData);
+      const response = await api.put(`/files/${fileData.id}`, { name: fileData.name, type: fileData.type, content: fileData.content, roomId: fileData.roomId, projectId: fileData.projectId });
       const updatedFile = response.data as File;
 
       set((state) => ({
@@ -205,8 +204,9 @@ const useFileStore = create<FileState>((set, get) => ({
         id: fileId,
         content
       });
-    } catch (error) {
+    } catch (error: any) {
       // Revert optimistic updates on error
+      console.error("Failed to update file content:", error.message);
       if (currentFile && currentFile.id === fileId) {
         set({
           activeFile: currentFile,

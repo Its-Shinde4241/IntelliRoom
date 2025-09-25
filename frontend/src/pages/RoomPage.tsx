@@ -238,7 +238,6 @@ export default function RoomPage() {
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       <Header
         language={language}
-        onLanguageChange={handleLanguageChange}
         mode={mode}
         onModeToggle={handleMode}
         onRun={handleRun}

@@ -27,7 +27,7 @@ export default function Terminal({
   setIsResizing,
 }: Terminal) {
   const { output, loading, error } = useCodeStore();
-  const [activeTab, setActiveTab] = useState<"input" | "output">("input");
+  const [activeTab, setActiveTab] = useState<"input" | "output">("output");
 
   return (
     <div

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { axiosJudge0 } from "../lib/axiosInstance";
+import { toast } from "sonner";
+
 interface Judge0SubmissionResponse {
     token: string;
 }
@@ -23,7 +25,6 @@ type CodeStore = {
     saveCode: (code: string, roomId: string) => void;
 };
 
-
 const useCodeStore = create<CodeStore>((set) => ({
     loading: false,
     output: null,
@@ -32,6 +33,7 @@ const useCodeStore = create<CodeStore>((set) => ({
 
     runCode: async (code: string, langId: string, stdIn: string) => {
         set({ loading: true, output: null, error: null });
+        console.log("Running code with language ID:", langId);
 
         try {
             // If language is JS or TS (run in-browser)
@@ -58,12 +60,14 @@ const useCodeStore = create<CodeStore>((set) => ({
                     })();
 
                     console.log = originalLog; // restore
+                    toast.success("Code executed successfully!");
                 } catch (e: any) {
-                    set({ output: null, error: e.message || String(e) });
+                    const errorMessage = e.message || String(e);
+                    set({ output: null, error: errorMessage });
+                    toast.error(`Execution error: ${errorMessage}`);
                 }
                 return;
             }
-
 
             // Otherwise, use Judge0
             const { data } = await axiosJudge0.post<Judge0SubmissionResponse>(
@@ -78,38 +82,105 @@ const useCodeStore = create<CodeStore>((set) => ({
             const token = data.token;
 
             let result: Judge0Result | null = null;
-            while (true) {
-                const res = await axiosJudge0.get<Judge0Result>(
-                    `/submissions/${token}?base64_encoded=true&fields=*`
-                );
-                if (res.data.status.id <= 2) {
-                    await new Promise((r) => setTimeout(r, 1500));
-                } else {
-                    result = res.data;
-                    break;
+            let attempts = 0;
+            const maxAttempts = 20; // Prevent infinite loop
+
+            while (attempts < maxAttempts) {
+                try {
+                    const res = await axiosJudge0.get<Judge0Result>(
+                        `/submissions/${token}?base64_encoded=true&fields=*`
+                    );
+
+                    if (res.data.status.id <= 2) {
+                        await new Promise((r) => setTimeout(r, 1500));
+                        attempts++;
+                    } else {
+                        result = res.data;
+                        break;
+                    }
+                } catch (pollError: any) {
+                    console.error("Error polling submission:", pollError);
+                    toast.error("Error checking code execution status");
+                    throw new Error("Failed to check execution status");
                 }
             }
 
-            const decode = (val: string | null) =>
-                val ? atob(val) : null;
+            if (attempts >= maxAttempts) {
+                toast.error("Code execution timed out");
+                set({ output: null, error: "Execution timed out" });
+                return;
+            }
+
+            if (!result) {
+                toast.error("No result received from code execution");
+                set({ output: null, error: "No result received" });
+                return;
+            }
+
+            const decode = (val: string | null) => {
+                try {
+                    return val ? atob(val) : null;
+                } catch (decodeError) {
+                    console.error("Error decoding base64:", decodeError);
+                    return val; // Return original if decode fails
+                }
+            };
+
+            const decodedOutput = decode(result.stdout);
+            const decodedError = decode(result.stderr) || decode(result.compile_output);
 
             set({
-                output: decode(result?.stdout) || null,
-                error: decode(result?.stderr) || decode(result?.compile_output) || null,
+                output: decodedOutput,
+                error: decodedError,
             });
 
+            // Show appropriate toast based on result
+            if (decodedError) {
+                toast.error("Code execution failed with errors");
+            } else if (decodedOutput) {
+                toast.success("Code executed successfully!");
+            } else {
+                toast.success("Code executed (no output)");
+            }
+
         } catch (err: any) {
-            console.error("Error while running code:", err.response?.data || err);
-            throw err.response.data.message;
-            // set({ output: null, error: err.message || "Unknown error" });
+            console.error("Error while running code:", err);
+
+            let errorMessage = "Unknown error occurred";
+
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.response?.data) {
+                errorMessage = typeof err.response.data === 'string'
+                    ? err.response.data
+                    : JSON.stringify(err.response.data);
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            set({ output: null, error: errorMessage });
+            toast.error(`Execution failed: ${errorMessage}`);
+
         } finally {
             set({ loading: false });
         }
     },
 
     saveCode: (code: string, roomId: string) => {
-        localStorage.setItem(`room-${roomId}-code`, code);
-        console.log("Code saved for room", roomId);
+        try {
+            if (!code || !roomId) {
+                toast.error("Invalid code or room ID");
+                return;
+            }
+
+            localStorage.setItem(`room-${roomId}-code`, code);
+            console.log("Code saved for room", roomId);
+            toast.success("Code saved successfully!");
+
+        } catch (saveError: any) {
+            console.error("Error saving code:", saveError);
+            toast.error("Failed to save code");
+        }
     },
 }));
 
