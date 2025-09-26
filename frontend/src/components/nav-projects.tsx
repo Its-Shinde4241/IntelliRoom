@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { 
+import {
   ChevronRight,
-  FileCode, 
-  File as FileIcon, 
+  FileCode,
+  File as FileIcon,
   Pencil,
   Trash2,
   type LucideIcon,
-} from "lucide-react"
-import { useNavigate } from "react-router-dom"
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu"
+} from "@/components/ui/context-menu";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -29,28 +29,29 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import RenameFilePopover from "./RenameFilePopover";
 
 interface WebDevFile {
-  id: string
-  name: string
-  type: 'html' | 'css' | 'js'
+  id: string;
+  name: string;
+  type: "html" | "css" | "js";
 }
 
 interface Project {
-  id: string
-  name: string
-  icon: LucideIcon
-  files: WebDevFile[]
-  isActive?: boolean
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  files: WebDevFile[];
+  isActive?: boolean;
 }
 
 interface NavProjectsProps {
-  projects: Project[]
-  onRenameFile?: (projectId: string, fileId: string, newName: string) => void
-  onDeleteFile?: (projectId: string, fileId: string) => void
-  onRenameProject?: (projectId: string, newName: string) => void
-  onDeleteProject?: (projectId: string) => void
+  projects: Project[];
+  onRenameFile?: (projectId: string, fileId: string, newName: string) => void;
+  onDeleteFile?: (projectId: string, fileId: string) => void;
+  onRenameProject?: (projectId: string, newName: string) => void;
+  onDeleteProject?: (projectId: string) => void;
 }
 
 // const FileIcons = {
@@ -65,48 +66,58 @@ interface NavProjectsProps {
 //   js: 'JavaScript'
 // }
 
-export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRenameProject, onDeleteProject }: NavProjectsProps) {
-  const navigate = useNavigate()
+export default function NavProjects({
+  projects,
+  onRenameFile,
+  onDeleteFile,
+  onRenameProject,
+  onDeleteProject,
+}: NavProjectsProps) {
+  const navigate = useNavigate();
 
   const handleFileClick = (projectId: string, fileType: string) => {
-    navigate(`/project/${projectId}/${fileType}`)
-  }
+    navigate(`/project/${projectId}/${fileType}`);
+  };
 
-  const handleRenameFile = (projectId: string, fileId: string) => {
-    const file = projects.find(p => p.id === projectId)?.files.find(f => f.id === fileId)
-    if (!file) return
-
-    const newName = prompt("Enter new file name:", file.name)
-    if (newName && newName !== file.name) {
-      onRenameFile?.(projectId, fileId, newName)
+  const handleRenameFile = async (
+    projectId: string,
+    fileId: string,
+    newName: string
+  ) => {
+    try {
+      await onRenameFile?.(projectId, fileId, newName);
+    } catch (error) {
+      throw error; // Let the popover handle the error
     }
-  }
+  };
 
   const handleDeleteFile = (projectId: string, fileId: string) => {
     if (confirm("Are you sure you want to delete this file?")) {
-      onDeleteFile?.(projectId, fileId)
+      onDeleteFile?.(projectId, fileId);
     }
-  }
+  };
 
   const handleRenameProject = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId)
-    if (!project) return
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
 
-    const newName = prompt("Enter new project name:", project.name)
+    const newName = prompt("Enter new project name:", project.name);
     if (newName && newName !== project.name) {
-      onRenameProject?.(projectId, newName)
+      onRenameProject?.(projectId, newName);
     }
-  }
+  };
 
   const handleDeleteProject = (projectId: string) => {
-    if (confirm("Are you sure you want to delete this project and all its files?")) {
-      onDeleteProject?.(projectId)
+    if (
+      confirm("Are you sure you want to delete this project and all its files?")
+    ) {
+      onDeleteProject?.(projectId);
     }
-  }
+  };
 
   const getFileIcon = (type: string) => {
-    return type === 'js' ? FileCode : FileIcon
-  }
+    return type === "js" ? FileCode : FileIcon;
+  };
 
   return (
     <div className="py-2">
@@ -134,11 +145,13 @@ export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRe
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleRenameProject(project.id)}>
+                    <ContextMenuItem
+                      onClick={() => handleRenameProject(project.id)}
+                    >
                       <Pencil className="h-4 w-4 mr-2" />
                       Rename Project
                     </ContextMenuItem>
-                    <ContextMenuItem 
+                    <ContextMenuItem
                       onClick={() => handleDeleteProject(project.id)}
                       className="text-destructive focus:text-destructive"
                     >
@@ -150,14 +163,16 @@ export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRe
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {project.files.map((file) => {
-                      const FileTypeIcon = getFileIcon(file.type)
+                      const FileTypeIcon = getFileIcon(file.type);
                       return (
                         <SidebarMenuSubItem key={file.id}>
                           <ContextMenu>
                             <ContextMenuTrigger asChild>
                               <div className="flex items-center">
                                 <SidebarMenuSubButton
-                                  onClick={() => handleFileClick(project.id, file.type)}
+                                  onClick={() =>
+                                    handleFileClick(project.id, file.type)
+                                  }
                                   className="flex-1"
                                 >
                                   <FileTypeIcon className="h-4 w-4" />
@@ -166,12 +181,27 @@ export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRe
                               </div>
                             </ContextMenuTrigger>
                             <ContextMenuContent>
-                              <ContextMenuItem onClick={() => handleRenameFile(project.id, file.id)}>
-                                <Pencil className="h-3.5 w-3.5 mr-2" />
-                                Rename File
-                              </ContextMenuItem>
-                              <ContextMenuItem 
-                                onClick={() => handleDeleteFile(project.id, file.id)}
+                              <RenameFilePopover
+                                fileName={file.name}
+                                onRename={(newName) =>
+                                  handleRenameFile(project.id, file.id, newName)
+                                }
+                                trigger={
+                                  <ContextMenuItem
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 mr-2" />
+                                    Rename File
+                                  </ContextMenuItem>
+                                }
+                              />
+                              <ContextMenuItem
+                                onClick={() =>
+                                  handleDeleteFile(project.id, file.id)
+                                }
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -180,7 +210,7 @@ export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRe
                             </ContextMenuContent>
                           </ContextMenu>
                         </SidebarMenuSubItem>
-                      )
+                      );
                     })}
                   </SidebarMenuSub>
                 </CollapsibleContent>
@@ -190,5 +220,5 @@ export default function NavProjects({ projects, onRenameFile, onDeleteFile, onRe
         </SidebarMenu>
       </SidebarGroup>
     </div>
-  )
+  );
 }

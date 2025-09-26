@@ -60,7 +60,10 @@ const useCodeStore = create<CodeStore>((set) => ({
                     })();
 
                     console.log = originalLog; // restore
-                    toast.success("Code executed successfully!");
+                    toast.success("Code executed successfully!", {
+                        duration: 1000,
+                        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+                    });
                 } catch (e: any) {
                     const errorMessage = e.message || String(e);
                     set({ output: null, error: errorMessage });
@@ -175,11 +178,14 @@ const useCodeStore = create<CodeStore>((set) => ({
 
             localStorage.setItem(`room-${roomId}-code`, code);
             console.log("Code saved for room", roomId);
-            toast.success("Code saved successfully!");
+            toast.success("File saved!", {
+                duration: 1000,
+                style: { width: "auto", minWidth: "fit-content", padding: 6 },
+            });
 
         } catch (saveError: any) {
             console.error("Error saving code:", saveError);
-            toast.error("Failed to save code");
+            // toast.error("Failed to save code");
         }
     },
 }));

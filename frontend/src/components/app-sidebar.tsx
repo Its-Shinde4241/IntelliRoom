@@ -19,6 +19,9 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
@@ -70,7 +73,7 @@ import useFileStore from "@/store/fileStore";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore();
   const { rooms, getUserRooms, deleteRoom, updateRoom } = useRoomStore();
-  const { createFile } = useFileStore();
+  const { createFile, activeFile, deleteFile, updateFileName } = useFileStore();
 
   const projectsData = data.projectsData.map((project) => ({
     ...project,
@@ -104,83 +107,52 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <AppLogo name="INTELLIROOM" logo={CodeXml} />
         <SidebarSeparator />
-
         {/* Top Actions */}
-        <SidebarGroup className="flex flex-col gap-2 p-2">
-          {/* New Room Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+        {/* Top Actions */}
+        <SidebarGroup className="p-2 group-data-[collapsible=icon]:p-1">
+          <SidebarMenu>
+            {/* New Room Button */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
                 onClick={() => {
                   /* Handle new room creation */
                   console.log("New Room Clicked");
                 }}
+                tooltip="New Room"
               >
-                <Plus className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  New Room
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              New Room
-            </TooltipContent>
-          </Tooltip>
+                <Plus className="h-4 w-4" />
+                <span>New Room</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
 
-          {/* Search Rooms Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+            {/* Search Rooms Button */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
                 onClick={() => {
                   /* Handle room search */
                   console.log("Search Rooms Clicked");
                 }}
+                tooltip="Search Rooms"
               >
-                <Search className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  Search Rooms
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              Search Rooms
-            </TooltipContent>
-          </Tooltip>
+                <Search className="h-4 w-4" />
+                <span>Search Rooms</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
 
-          {/* New Project Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+            {/* New Project Button */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
                 onClick={() => {
                   /* Handle new project creation */
                   console.log("New Project Clicked");
                 }}
+                tooltip="New Project"
               >
-                <FolderPlus className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  New Project
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              New Project
-            </TooltipContent>
-          </Tooltip>
+                <FolderPlus className="h-4 w-4" />
+                <span>New Project</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </SidebarGroup>
         <SidebarSeparator />
       </SidebarHeader>
@@ -188,14 +160,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         className="flex flex-col flex-grow"
         style={{ scrollbarWidth: "thin" }}
       >
-        <div className="pr-2">
+        <div className="pr-2 group-data-[collapsible=icon]:pr-1">
           <ScrollArea className="flex-1">
-            <NavRooms
-              rooms={rooms}
-              onAddFile={createFile}
-              onRenameRoom={updateRoom}
-            />
-            <NavProjects projects={projectsData} />
+            <div className="p-2 group-data-[collapsible=icon]:p-1">
+              <NavRooms
+                rooms={rooms}
+                activeFileId={activeFile?.id as string}
+                onAddFile={createFile}
+                onRenameRoom={updateRoom}
+                onDeleteRoom={deleteRoom}
+                onDeleteFile={deleteFile}
+                onRenameFile={updateFileName}
+              />
+            </div>
+            <div className="p-2 group-data-[collapsible=icon]:p-1">
+              <NavProjects projects={projectsData} />
+            </div>
           </ScrollArea>
         </div>
       </SidebarContent>

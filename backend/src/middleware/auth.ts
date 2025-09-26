@@ -11,7 +11,11 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
     const token = authHeader.split(" ")[1];
     try {
         const decodedUser = await verifyIdToken(token);
-        (req as any).user = decodedUser;
+        (req as any).user = {
+            uid: decodedUser.uid,
+            email: decodedUser.email,
+            name: decodedUser.name
+        };
         next();
     } catch (error) {
         return res.status(401).json({ error: " Invalid or expired token " });

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import "../config/types";
 
 class RoomController {
     private static handleError(res: Response, error: any, message: string): void {
@@ -11,7 +12,7 @@ class RoomController {
 
     public async getUserRooms(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.params.id;
+            const userId = req.user?.uid;
             const result = await prisma.room.findMany({
                 where: { userId: userId }, include: {
                     files: {
@@ -72,10 +73,11 @@ class RoomController {
 
     public async updateRoom(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { id } = req.params;
             const { name, password } = req.body;
             const result = await prisma.room.update({
-                where: { id: id },
+                where: { id: id, userId: userId },
                 data: {
                     name,
                     password
@@ -89,10 +91,12 @@ class RoomController {
 
     public async deleteRoom(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const roomId = req.params.id;
             await prisma.room.delete({
                 where: {
                     id: roomId,
+                    userId: userId
                 }
             });
             res.status(204).send();
@@ -103,8 +107,14 @@ class RoomController {
 
     public async getRoomFiles(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { roomId } = req.params;
-            const result = await prisma.file.findMany({ where: { roomId } });
+            const result = await prisma.file.findMany({
+                where: {
+                    roomId: roomId,
+                    userId: userId
+                }
+            });
             res.status(200).json(result);
         } catch (error) {
             RoomController.handleError(res, error, "Failed to fetch room files");

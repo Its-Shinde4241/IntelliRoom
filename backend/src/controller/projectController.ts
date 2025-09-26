@@ -19,7 +19,19 @@ class ProjectController {
 
     public async createProjectWithFiles(req: Request, res: Response): Promise<void> {
         try {
-            const { userId, projectName } = req.body;
+            const userId = req.user?.uid;
+            if (!userId) {
+                res.status(401).json({ error: "Unauthorized" });
+                return;
+            }
+            const { projectName } = req.body;
+            const existingProject = await prisma.project.findFirst({
+                where: { name: projectName, userId }
+            });
+            if (existingProject) {
+                res.status(409).json({ error: "Project with this name already exists" });
+                return;
+            }
             const project = await prisma.project.create({
                 data: {
                     name: projectName,
@@ -60,6 +72,7 @@ class ProjectController {
             ];
             await prisma.file.createMany({
                 data: defaultFiles.map((file) => ({
+                    userId: userId,
                     projectId: project.id,
                     ...file,
                 })),
@@ -71,7 +84,7 @@ class ProjectController {
     }
     public async getUserProjects(req: Request, res: Response): Promise<void> {
         try {
-            const { userId } = req.params;
+            const userId = req.user?.uid;
             const projects = await prisma.project.findMany({
                 where: { userId: userId },
                 // include: { files: true }

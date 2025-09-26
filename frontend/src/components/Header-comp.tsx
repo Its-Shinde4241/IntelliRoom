@@ -169,6 +169,7 @@ export default function Header({
               onClick={handleShare}
               className="h-8 text-muted-foreground hover:text-foreground"
               title="Share Code"
+              disabled={true}
             >
               <Share2 className="h-4 w-4" />
             </Button>

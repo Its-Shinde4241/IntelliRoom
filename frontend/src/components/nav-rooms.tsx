@@ -33,6 +33,7 @@ import { getfileExtension } from "@/lib/helper";
 import { toast } from "sonner";
 import NewFilePopover from "./NewFilePopover";
 import UpdateRoomPopover from "./UpdateRoomPopover";
+import RenameFilePopover from "./RenameFilePopover";
 import type { CreateFileData } from "@/store/fileStore";
 
 interface Room {
@@ -47,18 +48,20 @@ interface Room {
 
 interface NavRoomsProps {
   rooms: Room[];
-  onRenameFile?: (roomId: string, fileId: string, newName: string) => void;
-  onDeleteFile?: (roomId: string, fileId: string) => void;
+  activeFileId: string;
+  onRenameFile: (fileId: string, newName: string) => void;
+  onDeleteFile?: (fileId: string) => void;
   onRenameRoom: (
     roomId: string,
     updates: { name?: string | undefined; password?: string | undefined }
   ) => Promise<void>;
-  onDeleteRoom?: (roomId: string) => void;
+  onDeleteRoom: (roomId: string) => void;
   onAddFile: (fileData: CreateFileData) => Promise<string>;
 }
 
 export function NavRooms({
   rooms,
+  activeFileId,
   onRenameFile,
   onDeleteFile,
   onRenameRoom,
@@ -95,21 +98,46 @@ export function NavRooms({
     }
   };
 
-  const handleRenameFile = (roomId: string, fileId: string) => {
-    const file = rooms
-      .find((r) => r.id === roomId)
-      ?.files.find((f) => f.id === fileId);
-    if (!file) return;
-
-    const newName = prompt("Enter new file name:", file.name);
-    if (newName && newName !== file.name) {
-      onRenameFile?.(roomId, fileId, newName);
+  const handleRenameFile = async (
+    roomId: string,
+    fileId: string,
+    newName: string
+  ) => {
+    try {
+      onRenameFile(fileId, newName);
+      // Update local state
+      const room = rooms.find((r) => r.id === roomId);
+      if (room) {
+        const fileIndex = room.files.findIndex((f) => f.id === fileId);
+        if (fileIndex !== -1) {
+          room.files[fileIndex].name = newName;
+        }
+      }
+    } catch (error) {
+      throw error; // Let the popover handle the error
     }
   };
 
-  const handleDeleteFile = (roomId: string, fileId: string) => {
-    if (confirm("Are you sure you want to delete this file?")) {
-      onDeleteFile?.(roomId, fileId);
+  const handleDeleteFile = (fileId: string) => {
+    try {
+      onDeleteFile?.(fileId);
+      rooms
+        .find((r) => r.id === activeRoomId)
+        ?.files.splice(
+          rooms
+            .find((r) => r.id === activeRoomId)
+            ?.files.findIndex((f) => f.id === fileId) as number,
+          1
+        );
+      toast.success("File deleted successfully", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch {
+      toast.error("Failed to delete file", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
     }
   };
 
@@ -130,10 +158,18 @@ export function NavRooms({
   };
 
   const handleDeleteRoom = (roomId: string) => {
-    if (
-      confirm("Are you sure you want to delete this room and all its files?")
-    ) {
-      onDeleteRoom?.(roomId);
+    try {
+      onDeleteRoom(roomId);
+      toast.success("Room deleted successfully", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch (error) {
+      toast.error("Failed to delete room", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+      console.error("Error deleting room:", error);
     }
   };
 
@@ -145,6 +181,13 @@ export function NavRooms({
         roomId: activeRoomForNewFile,
       });
       handleFileClick(activeRoomForNewFile, newFileId);
+      rooms
+        .find((r) => r.id === activeRoomForNewFile)
+        ?.files.push({
+          id: newFileId,
+          name: fileName,
+          type: fileType,
+        });
       toast.success(`File "${fileName}" created successfully`, {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -217,11 +260,7 @@ export function NavRooms({
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
-                <CollapsibleContent
-                  className="transition-all duration-300 ease-in-out
-data-[state=open]:animate-in
-data-[state=open]:slide-in-from-top-2"
-                >
+                <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=open]:animate-in data-[state=open]:slide-in-from-top-2">
                   <SidebarMenuSub className="animate-in slide-in-from-top-2 duration-300 ease-in-out">
                     {room.files.map((file) => (
                       <SidebarMenuSubItem
@@ -230,7 +269,13 @@ data-[state=open]:slide-in-from-top-2"
                       >
                         <ContextMenu>
                           <ContextMenuTrigger asChild>
-                            <div className="flex items-center">
+                            <div
+                              className={`flex items-center ${
+                                activeFileId === file.id
+                                  ? "bg-accent text-accent-foreground font-medium"
+                                  : "font-normal"
+                              } group/menu-button`}
+                            >
                               <SidebarMenuSubButton
                                 onClick={() =>
                                   handleFileClick(room.id, file.id)
@@ -245,14 +290,25 @@ data-[state=open]:slide-in-from-top-2"
                             </div>
                           </ContextMenuTrigger>
                           <ContextMenuContent>
+                            <RenameFilePopover
+                              fileName={file.name}
+                              onRename={(newName) =>
+                                handleRenameFile(room.id, file.id, newName)
+                              }
+                              trigger={
+                                <ContextMenuItem
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-2" />
+                                  Rename File
+                                </ContextMenuItem>
+                              }
+                            />
                             <ContextMenuItem
-                              onClick={() => handleRenameFile(room.id, file.id)}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-2" />
-                              Rename File
-                            </ContextMenuItem>
-                            <ContextMenuItem
-                              onClick={() => handleDeleteFile(room.id, file.id)}
+                              onClick={() => handleDeleteFile(file.id)}
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" />

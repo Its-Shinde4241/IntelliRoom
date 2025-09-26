@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Terminal as TerminalIcon } from "lucide-react";
@@ -15,9 +15,14 @@ import Header, { languages } from "../components/Header-comp";
 export default function FilePage() {
   const params = useParams();
   const fileId = params.fileId;
+  const navigate = useNavigate();
 
-  const { activeFile, loading, getFile, updateFileContent, updateFileName } =
-    useFileStore();
+  const {
+    activeFile,
+    loading: fileLoading,
+    getFile,
+    updateFileContent,
+  } = useFileStore();
   const { runCode, loading: codeLoading } = useCodeStore();
   const [mode, setMode] = useState<string>("light");
 
@@ -39,7 +44,48 @@ export default function FilePage() {
 
   useEffect(() => {
     if (activeFile) setEditorValue(activeFile.content);
+    else {
+      navigate("/");
+      setEditorValue("");
+    }
   }, [activeFile]);
+
+  //mouse event handlers for terminal resizing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const container = document.querySelector(".editor-container");
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const newHeight = containerRect.bottom - e.clientY;
+
+      const minHeight = 100;
+      const maxHeight = containerRect.height * 0.7;
+
+      const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+      setTerminalHeight(clampedHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "ns-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
 
   const handleEditorDidMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
@@ -125,7 +171,7 @@ export default function FilePage() {
 
   const handleSave = useCallback(async () => {
     if (!activeFile) return;
-    await updateFileContent(activeFile.id, editorValue);
+    updateFileContent(activeFile.id, editorValue);
     toast.success("File saved!", {
       duration: 1000,
       style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -146,10 +192,13 @@ export default function FilePage() {
 
   const handleDownload = useCallback(() => {
     if (!activeFile) return;
+
+    const filename = `${activeFile.name}.${activeFile.type}`;
+
     const blob = new Blob([editorValue], { type: "text/plain" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = activeFile.name;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -168,7 +217,7 @@ export default function FilePage() {
         onSave={handleSave}
         onCopy={handleCopy}
         onDownload={handleDownload}
-        isCompiling={codeLoading || loading}
+        isCompiling={codeLoading || fileLoading}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden editor-container">
@@ -216,7 +265,7 @@ export default function FilePage() {
                   className="w-[1px] h-3 bg-border"
                 />
                 <span>{charCount} chars</span>
-                {(codeLoading || loading) && (
+                {(codeLoading || fileLoading) && (
                   <>
                     <Separator
                       orientation="vertical"

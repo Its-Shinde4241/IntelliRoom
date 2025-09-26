@@ -25,8 +25,6 @@ const FILE_TYPES = {
   js: "JavaScript",
   ts: "TypeScript",
   py: "Python",
-  html: "HTML",
-  css: "CSS",
   java: "Java",
   cpp: "C++",
   c: "C",

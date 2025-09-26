@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "../lib/axiosInstance"; // Update this path to match your axios file location
+import { getAuth } from "firebase/auth";
 
 export interface File {
   id: string;
@@ -124,7 +125,7 @@ const useFileStore = create<FileState>((set, get) => ({
   createFile: async (fileData: CreateFileData) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.post("/files", fileData);
+      const response = await api.post(`/files`, { ...fileData });
       const newFile = response.data as File;
 
       set((state) => ({
@@ -178,6 +179,7 @@ const useFileStore = create<FileState>((set, get) => ({
     await get().updateFile({
       id: fileId,
       name: newName
+
     });
   },
 
