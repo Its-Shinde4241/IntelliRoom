@@ -1,9 +1,12 @@
-import { useState } from "react";
+"use client"
+
+import { useState, useEffect } from "react";
 import {
   ChevronRight,
   DoorClosedLocked,
   DoorOpen,
   FileIcon,
+  OctagonAlert,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -23,18 +26,32 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { getfileExtension } from "@/lib/helper";
 import { toast } from "sonner";
 import NewFilePopover from "./NewFilePopover";
 import UpdateRoomPopover from "./UpdateRoomPopover";
 import RenameFilePopover from "./RenameFilePopover";
 import type { CreateFileData } from "@/store/fileStore";
+import useFileStore from "@/store/fileStore";
+import useRoomStore from "@/store/roomStore";
 
 interface Room {
   id: string;
@@ -49,6 +66,7 @@ interface Room {
 interface NavRoomsProps {
   rooms: Room[];
   activeFileId: string;
+  loading?: boolean;
   onRenameFile: (fileId: string, newName: string) => void;
   onDeleteFile?: (fileId: string) => void;
   onRenameRoom: (
@@ -70,10 +88,28 @@ export function NavRooms({
 }: NavRoomsProps) {
   const navigate = useNavigate();
   const { roomId: activeRoomId } = useParams<{ roomId: string }>();
-  const [openRooms, setOpenRooms] = useState<Set<string>>(
-    new Set(activeRoomId ? [activeRoomId] : [])
-  );
+
+  // Get active file and room from stores
+  const { activeFile } = useFileStore();
+  const { activeRoom } = useRoomStore();
+
+  const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
   const [activeRoomForNewFile, setActiveRoomForNewFile] = useState<string>("");
+  const [roomToDelete, setRoomToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Auto-open room if there's an active file
+  useEffect(() => {
+    if (activeFile && activeFile.roomId) {
+      setOpenRooms(new Set([activeFile.roomId]));
+    } else if (activeRoom?.id) {
+      setOpenRooms(new Set([activeRoom.id]));
+    } else if (activeRoomId) {
+      setOpenRooms(new Set([activeRoomId]));
+    }
+  }, [activeFile, activeRoom, activeRoomId]);
 
   const handleFileClick = (roomId: string, fileId: string) => {
     navigate(`/room/${roomId}/file/${fileId}`);
@@ -91,11 +127,9 @@ export function NavRooms({
     });
   };
 
+  // Only navigate to room page, don't toggle collapsible
   const handleRoomClick = (roomId: string) => {
-    if (activeRoomId !== roomId) {
-      navigate(`/room/${roomId}`);
-      setOpenRooms((prev) => new Set(prev).add(roomId));
-    }
+    navigate(`/room/${roomId}`);
   };
 
   const handleRenameFile = async (
@@ -105,7 +139,6 @@ export function NavRooms({
   ) => {
     try {
       onRenameFile(fileId, newName);
-      // Update local state
       const room = rooms.find((r) => r.id === roomId);
       if (room) {
         const fileIndex = room.files.findIndex((f) => f.id === fileId);
@@ -114,7 +147,7 @@ export function NavRooms({
         }
       }
     } catch (error) {
-      throw error; // Let the popover handle the error
+      throw error;
     }
   };
 
@@ -160,6 +193,7 @@ export function NavRooms({
   const handleDeleteRoom = (roomId: string) => {
     try {
       onDeleteRoom(roomId);
+      setRoomToDelete(null);
       toast.success("Room deleted successfully", {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -174,13 +208,14 @@ export function NavRooms({
   };
 
   const handleCreateFile = async (fileName: string, fileType: string) => {
+    // setCreatingFile(true);
     try {
       const newFileId = await onAddFile({
         name: fileName,
         type: fileType,
         roomId: activeRoomForNewFile,
       });
-      handleFileClick(activeRoomForNewFile, newFileId);
+
       rooms
         .find((r) => r.id === activeRoomForNewFile)
         ?.files.push({
@@ -188,6 +223,8 @@ export function NavRooms({
           name: fileName,
           type: fileType,
         });
+      handleFileClick(activeRoomForNewFile, newFileId);
+
       toast.success(`File "${fileName}" created successfully`, {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -198,6 +235,8 @@ export function NavRooms({
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
       });
       console.error("Error creating file:", error);
+    } finally {
+      // setCreatingFile(false);
     }
   };
 
@@ -220,28 +259,20 @@ export function NavRooms({
               <SidebarMenuItem>
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
-                    <div className="flex items-center flex-1 group/menu-button">
-                      <CollapsibleTrigger asChild className="flex-1">
-                        <SidebarMenuButton
-                          tooltip={room.name}
-                          onClick={() => handleRoomClick(room.id)}
-                          isActive={isActive}
-                          className="transition-all duration-300 ease-in-out"
-                        >
-                          {isOpen ? (
-                            <DoorOpen className="h-4 w-4 transition-all duration-300 ease-in-out" />
-                          ) : (
-                            <DoorClosedLocked className="h-4 w-4 transition-all duration-300 ease-in-out" />
-                          )}
-                          <span className="transition-all duration-300 ease-in-out">
-                            {room.name}
-                          </span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-300 group-data-[state=open]/collapsible:rotate-90 ease-in-out" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                    </div>
+                    <SidebarMenuButton
+                      tooltip={room.name}
+                      onClick={() => handleRoomClick(room.id)}
+                      isActive={isActive}
+                    >
+                      {isOpen ? (
+                        <DoorOpen className="h-4 w-4" />
+                      ) : (
+                        <DoorClosedLocked className="h-4 w-4" />
+                      )}
+                      <span>{room.name}</span>
+                    </SidebarMenuButton>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="">
+                  <ContextMenuContent>
                     <div onClick={() => setActiveRoomForNewFile(room.id)}>
                       <NewFilePopover onCreateFile={handleCreateFile} />
                     </div>
@@ -252,7 +283,9 @@ export function NavRooms({
                       }
                     />
                     <ContextMenuItem
-                      onClick={() => handleDeleteRoom(room.id)}
+                      onClick={() =>
+                        setRoomToDelete({ id: room.id, name: room.name })
+                      }
                       className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -260,71 +293,102 @@ export function NavRooms({
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
-                <CollapsibleContent className="transition-all duration-300 ease-in-out data-[state=open]:animate-in data-[state=open]:slide-in-from-top-2">
-                  <SidebarMenuSub className="animate-in slide-in-from-top-2 duration-300 ease-in-out">
-                    {room.files.map((file) => (
-                      <SidebarMenuSubItem
-                        key={file.id}
-                        className="animate-in fade-in-0 slide-in-from-left-2 duration-200 ease-in-out"
-                      >
-                        <ContextMenu>
-                          <ContextMenuTrigger asChild>
-                            <div
-                              className={`flex items-center ${
-                                activeFileId === file.id
-                                  ? "bg-accent text-accent-foreground font-medium"
-                                  : "font-normal"
-                              } group/menu-button`}
-                            >
-                              <SidebarMenuSubButton
-                                onClick={() =>
-                                  handleFileClick(room.id, file.id)
-                                }
-                                className="flex-1 cursor-pointer"
-                              >
-                                <FileIcon className="h-4 w-4 transition-transform duration-200 ease-in-out" />
-                                <span className="transition-opacity duration-150 ease-in-out">
-                                  {file.name}.{getfileExtension(file.type)}
-                                </span>
-                              </SidebarMenuSubButton>
-                            </div>
-                          </ContextMenuTrigger>
-                          <ContextMenuContent>
-                            <RenameFilePopover
-                              fileName={file.name}
-                              onRename={(newName) =>
-                                handleRenameFile(room.id, file.id, newName)
-                              }
-                              trigger={
-                                <ContextMenuItem
-                                  onSelect={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
+
+                {room.files?.length ? (
+                  <>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuAction className="data-[state=open]:rotate-90">
+                        <ChevronRight />
+                        <span className="sr-only">Toggle</span>
+                      </SidebarMenuAction>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {room.files?.map((file) => (
+                          <SidebarMenuSubItem key={file.id}>
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <SidebarMenuSubButton
+                                  onClick={() => handleFileClick(room.id, file.id)}
+                                  isActive={activeFileId === file.id || activeFile?.id === file.id}
                                 >
-                                  <Pencil className="h-3.5 w-3.5 mr-2" />
-                                  Rename File
+                                  <FileIcon className="h-4 w-4" />
+                                  <span>
+                                    {file.name}.{getfileExtension(file.type)}
+                                  </span>
+                                </SidebarMenuSubButton>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent>
+                                <RenameFilePopover
+                                  fileName={file.name}
+                                  onRename={(newName) =>
+                                    handleRenameFile(room.id, file.id, newName)
+                                  }
+                                  trigger={
+                                    <ContextMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                                      Rename File
+                                    </ContextMenuItem>
+                                  }
+                                />
+                                <ContextMenuItem
+                                  onClick={() => handleDeleteFile(file.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  Delete File
                                 </ContextMenuItem>
-                              }
-                            />
-                            <ContextMenuItem
-                              onClick={() => handleDeleteFile(file.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              Delete File
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </>
+                ) : null}
               </SidebarMenuItem>
             </Collapsible>
           );
         })}
       </SidebarMenu>
+
+      {/* Delete Room Confirmation Dialog */}
+      <AlertDialog
+        open={!!roomToDelete}
+        onOpenChange={(open) => !open && setRoomToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader className="items-center">
+            <AlertDialogTitle>
+              <div className="mb-2 mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <OctagonAlert className="h-7 w-7 text-destructive" />
+              </div>
+              Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] text-center">
+              This action cannot be undone. This will permanently delete the
+              room <b>{roomToDelete?.name}</b> and all its files from the
+              server.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2 sm:justify-center">
+            <AlertDialogCancel onClick={() => setRoomToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
+              onClick={() => roomToDelete && handleDeleteRoom(roomToDelete.id)}
+            >
+              Delete Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarGroup>
   );
 }

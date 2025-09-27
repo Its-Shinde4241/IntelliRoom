@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { api } from "../lib/axiosInstance"; // Update this path to match your axios file location
-import { getAuth } from "firebase/auth";
 
 export interface File {
   id: string;
@@ -79,6 +78,8 @@ const useFileStore = create<FileState>((set, get) => ({
         loading: false
       });
       throw error;
+    } finally {
+      set({ loading: false });
     }
   },
 

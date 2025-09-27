@@ -85,8 +85,12 @@ const useRoomStore = create<RoomState>((set, get) => ({
         password,
         userId
       });
+      const newRoom = {
+        ...response.data,
+        files: response.data.files || [] // Initialize files as empty array if undefined
+      };
       const rooms = get().rooms;
-      set({ rooms: [...rooms, response.data] });
+      set({ rooms: [...rooms, newRoom] });
       toast.success(`Room "${name}" created successfully`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create room';

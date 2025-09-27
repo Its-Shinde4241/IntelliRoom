@@ -24,6 +24,12 @@ const languages = [
     defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\nint main(){\n  cout << "Hello Boss!";\n  return 0;\n}`,
   },
   {
+    id: "52",
+    monaco: "c",
+    label: "C",
+    defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\nint main(){\n  cout << "Hello Boss!";\n  return 0;\n}`,
+  },
+  {
     id: "62",
     monaco: "java",
     label: "Java",
