@@ -93,6 +93,13 @@ export default function FilePage() {
 
   const handleEditorDidMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
+
+    editor.onKeyDown((e) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
+        e.preventDefault();
+        handleSave();
+      }
+    });
     editor.onDidChangeCursorPosition((e) =>
       setPosition({ line: e.position.lineNumber, column: e.position.column })
     );
@@ -163,6 +170,21 @@ export default function FilePage() {
       style: { width: "auto", minWidth: "fit-content", padding: 6 },
     });
   }, [activeFile, updateFileContent, editorValue]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSave]);
 
   const handleCopy = useCallback(async () => {
     try {

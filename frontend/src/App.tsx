@@ -10,6 +10,7 @@ import RoomPage from "./pages/RoomPage";
 import ProjectPage from "./pages/ProjectPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import FilePage from "./pages/FilePage";
+import ProjectFilesPage from "./pages/ProjectFilesPage";
 
 export default function App() {
   const { loading, initAuthListener } = useAuthStore();
@@ -64,6 +65,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProjectPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId/file/:fileId"
+            element={
+              <ProtectedRoute>
+                <FilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId/:fileType"
+            element={
+              <ProtectedRoute>
+                <ProjectFilesPage />
               </ProtectedRoute>
             }
           />

@@ -1,7 +1,12 @@
-import { useCallback } from "react";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Separator } from "@radix-ui/react-separator";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Play,
   Save,
@@ -13,6 +18,7 @@ import {
   Sun,
   Minimize2,
   Share2,
+  ExternalLink,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 
@@ -64,9 +70,202 @@ interface HeaderProps {
   onCopy: () => void;
   onDownload: () => void;
   onShare?: () => void;
+  onHandlePreview?: () => void;
   isCompiling: boolean;
 }
 
+// Reusable Tooltip Button Component
+interface TooltipButtonProps {
+  onClick: () => void;
+  icon: React.ReactNode;
+  tooltip: string;
+  variant?: "ghost" | "outline" | "default";
+  size?: "sm" | "default";
+  className?: string;
+  disabled?: boolean;
+  children?: React.ReactNode;
+}
+
+const TooltipButton = ({
+  onClick,
+  icon,
+  tooltip,
+  variant = "ghost",
+  size = "sm",
+  className = "",
+  disabled = false,
+  children,
+}: TooltipButtonProps) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={onClick}
+        disabled={disabled}
+        className={`h-8 ${className}`}
+      >
+        {icon}
+        {children}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>{tooltip}</p>
+    </TooltipContent>
+  </Tooltip>
+);
+
+// Language Badge Component
+const LanguageBadge = ({ language }: { language: string }) => {
+  const currentLanguage = language === "-1"
+    ? "txt"
+    : languages.find((lang) => lang.id === language)?.label || "Unknown";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="outline" className="cursor-pointer">
+          {currentLanguage}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Current programming language: {currentLanguage}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+
+// Preview Button Component
+const PreviewButton = ({ onHandlePreview }: { onHandlePreview?: () => void }) => {
+  if (!onHandlePreview) return null;
+
+  return (
+    <TooltipButton
+      onClick={onHandlePreview}
+      icon={<ExternalLink className="h-4 w-4" />}
+      tooltip="Open project preview in a new browser tab"
+      variant="outline"
+      className="gap-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border-blue-200"
+    >
+      <span className="hidden sm:inline">Preview in Browser</span>
+    </TooltipButton>
+  );
+};
+
+// Theme Toggle Component
+const ThemeToggle = ({ mode, onModeToggle }: { mode: string; onModeToggle: () => void }) => (
+  <TooltipButton
+    onClick={onModeToggle}
+    icon={mode === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    tooltip={`Switch to ${mode === "light" ? "dark" : "light"} theme`}
+    className="w-8 p-0"
+  />
+);
+
+// Action Buttons Group Component
+const ActionButtonsGroup = ({
+  language,
+  isCompiling,
+  onRun,
+  onSave,
+  onCopy,
+  onDownload,
+  onShare,
+}: {
+  language: string;
+  isCompiling: boolean;
+  onRun: () => void;
+  onSave: () => void;
+  onCopy: () => void;
+  onDownload: () => void;
+  onShare?: () => void;
+}) => (
+  <div className="flex items-center gap-1">
+    {/* Run Button - Only show for programming languages */}
+    {language !== "-1" && (
+      <TooltipButton
+        onClick={onRun}
+        icon={
+          isCompiling ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )
+        }
+        tooltip={isCompiling ? "Code is running..." : "Execute your code"}
+        disabled={isCompiling}
+        className="gap-2 text-green-600 hover:bg-green-100 hover:text-green-700"
+      />
+    )}
+
+    {/* Save Button */}
+    <TooltipButton
+      onClick={onSave}
+      icon={<Save className="h-4 w-4" />}
+      tooltip="Save your code (Ctrl+S)"
+      className="gap-2 text-primary hover:bg-primary/10 hover:text-primary"
+    />
+
+    <Separator orientation="vertical" className="h-6 mx-1" />
+
+    {/* Secondary Actions */}
+    <TooltipButton
+      onClick={onCopy}
+      icon={<Copy className="h-4 w-4" />}
+      tooltip="Copy code to clipboard"
+      className="text-muted-foreground hover:text-foreground"
+    />
+
+    <TooltipButton
+      onClick={onDownload}
+      icon={<Download className="h-4 w-4" />}
+      tooltip="Download code as file"
+      className="text-muted-foreground hover:text-foreground"
+    />
+
+    <TooltipButton
+      onClick={onShare || (() => console.log("Share functionality not implemented"))}
+      icon={<Share2 className="h-4 w-4" />}
+      tooltip="Share your code (Coming soon)"
+      disabled={!onShare}
+      className="text-muted-foreground hover:text-foreground"
+    />
+  </div>
+);
+
+// Sidebar Toggle Component
+const SidebarToggleButton = () => {
+  const { state, toggleSidebar } = useSidebar();
+
+  return (
+    <TooltipButton
+      onClick={toggleSidebar}
+      icon={
+        state === "expanded" ? (
+          <Maximize2 className="h-4 w-4" />
+        ) : (
+          <Minimize2 className="h-4 w-4" />
+        )
+      }
+      tooltip={state === "expanded" ? "Expand window" : "Minimize window"}
+      className="text-muted-foreground hover:text-foreground hidden md:block"
+    />
+  );
+};
+
+// Enhanced Sidebar Trigger
+const EnhancedSidebarTrigger = () => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <SidebarTrigger className="-ml-1" />
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>Toggle navigation sidebar</p>
+    </TooltipContent>
+  </Tooltip>
+);
+
+// Main Header Component
 export default function Header({
   language,
   mode,
@@ -76,127 +275,47 @@ export default function Header({
   onCopy,
   onDownload,
   onShare,
+  onHandlePreview,
   isCompiling,
 }: HeaderProps) {
-  const { state, toggleSidebar } = useSidebar();
-  const handleShare = useCallback(() => {
-    if (onShare) {
-      onShare();
-    } else {
-      console.log("Share functionality not implemented");
-    }
-  }, [onShare]);
-
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-      <div className="flex items-center gap-2 px-4 w-full">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <div></div>
+    <TooltipProvider delayDuration={300}>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4 w-full">
+          {/* Left Section */}
+          <div className="flex items-center gap-2">
+            <EnhancedSidebarTrigger />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+          </div>
 
-        {/* RIGHT CONTROLS */}
-        <div className="flex items-center gap-4 ml-auto">
-          {/* Language selector */}
-          <Badge variant={"outline"} className="cursor-pointer">
-            {language == "-1"
-              ? "txt"
-              : languages.find((lang) => lang.id === language)?.label}
-          </Badge>
+          {/* Right Section */}
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Preview Button */}
+            <PreviewButton onHandlePreview={onHandlePreview} />
 
-          {/* Mode selector */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onModeToggle}
-            className="h-8 w-8 p-0"
-            title="Toggle editor theme"
-          >
-            {mode === "light" ? (
-              <Moon className="h-4 w-4" />
-            ) : (
-              <Sun className="h-4 w-4" />
-            )}
-          </Button>
+            {/* Language Badge */}
+            <LanguageBadge language={language} />
 
-          {/* ACTION BUTTONS */}
-          <div className="flex items-center gap-1">
-            {language !== "-1" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onRun}
-                disabled={isCompiling}
-                className="h-8 gap-2 text-green-600 hover:bg-green-100 hover:text-green-700"
-                title="Run Code"
-              >
-                {isCompiling ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-              </Button>
-            )}
+            {/* Theme Toggle */}
+            <ThemeToggle mode={mode} onModeToggle={onModeToggle} />
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSave}
-              className="h-8 gap-2 text-primary hover:bg-primary/10 hover:text-primary"
-              title="Save Code"
-            >
-              <Save className="h-4 w-4" />
-            </Button>
+            {/* Action Buttons */}
+            <ActionButtonsGroup
+              language={language}
+              isCompiling={isCompiling}
+              onRun={onRun}
+              onSave={onSave}
+              onCopy={onCopy}
+              onDownload={onDownload}
+              onShare={onShare}
+            />
 
-            <Separator orientation="vertical" className="h-6" />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCopy}
-              className="h-8 text-muted-foreground hover:text-foreground"
-              title="Copy Code"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDownload}
-              className="h-8 text-muted-foreground hover:text-foreground"
-              title="Download Code"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="h-8 text-muted-foreground hover:text-foreground"
-              title="Share Code"
-              disabled={true}
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 text-muted-foreground hover:text-foreground hidden md:block"
-              onClick={toggleSidebar}
-              title="Toggle Sidebar"
-            >
-              {state === "expanded" ? (
-                <Maximize2 className="h-4 w-4" />
-              ) : (
-                <Minimize2 className="h-4 w-4" />
-              )}
-            </Button>
+            {/* Sidebar Toggle */}
+            <SidebarToggleButton />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </TooltipProvider>
   );
 }
 

@@ -4,15 +4,13 @@ import * as React from "react"
 import { useEffect } from "react"
 import {
   CodeXml,
-  FolderPlus,
-  Layout,
-  FolderIcon,
 } from "lucide-react"
 
 import { NavRooms } from "@/components/nav-rooms"
 import { NavUser } from "@/components/nav-user"
 import NavProjects from "./nav-projects"
 import NewRoomPopover from "./NewRoomPopover"
+import NewProjectPopover from "./NewProjectPopover"
 import SearchRoomDialog from "./SearchRoomDialog"
 import {
   Sidebar,
@@ -27,36 +25,23 @@ import {
 import { useAuthStore } from "@/store/authStore"
 import useRoomStore from "@/store/roomStore"
 import useFileStore from "@/store/fileStore"
-
-// Sample projects data - Fixed icon types
-const projectsData = [
-  {
-    id: "project1",
-    name: "Landing Page",
-    icon: Layout, // Changed from string to LucideIcon
-    files: [
-      { type: "html" as const, id: "html1", name: "index.html" },
-      { type: "css" as const, id: "css1", name: "styles.css" },
-      { type: "js" as const, id: "js1", name: "main.js" },
-    ],
-  },
-  {
-    id: "project2",
-    name: "Portfolio",
-    icon: FolderIcon, // Changed from string to LucideIcon
-    files: [
-      { type: "html" as const, id: "html2", name: "portfolio.html" },
-      { type: "css" as const, id: "css2", name: "portfolio.css" },
-      { type: "js" as const, id: "js2", name: "portfolio.js" },
-    ],
-  },
-]
+import { useProjectStore } from "@/store/projectStore"
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore()
-  const { rooms, getUserRooms, deleteRoom, updateRoom, createRoom } = useRoomStore()
+  const { getUserRooms, createRoom } = useRoomStore()
   const { createFile, activeFile, deleteFile, updateFileName } = useFileStore()
+  const {
+    projects,
+    fetchUserProjects,
+    createProject,
+    updateProject,
+    deleteProject,
+    renameProjectFile,
+    deleteProjectFile,
+    runProject
+  } = useProjectStore()
 
   // Map user to expected shape for NavUser
   const mappedUser = (user && (user?.displayName || user?.email || user?.photoURL))
@@ -69,7 +54,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   useEffect(() => {
     getUserRooms(user?.uid as string)
-  }, [user?.uid, getUserRooms])
+    fetchUserProjects()
+  }, [user?.uid, getUserRooms, fetchUserProjects])
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -83,7 +69,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">INTELLIROOM</span>
-                  <span className="truncate text-xs">Code Together</span>
+                  <span className="truncate text-xs">Code Smart</span>
                 </div>
               </a>
             </SidebarMenuButton>
@@ -102,28 +88,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SearchRoomDialog />
           </SidebarMenuItem>
-          <SidebarMenuItem key={"refresh"}>
-            <SidebarMenuButton
-              variant={"outline"}
-              onClick={() => window.location.reload()} tooltip="Refresh">
-              <FolderPlus className="size-4" />
-              <span><b>New Project</b></span>
-            </SidebarMenuButton>
+          <SidebarMenuItem key="newProject">
+            <NewProjectPopover onCreateProject={createProject} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent style={{ scrollbarWidth: "none" }}>
         <NavRooms
-          rooms={rooms}
+          // rooms={rooms}
           activeFileId={activeFile?.id as string}
           onAddFile={createFile}
-          onRenameRoom={updateRoom}
-          onDeleteRoom={deleteRoom}
           onDeleteFile={deleteFile}
           onRenameFile={updateFileName}
         />
-        <NavProjects projects={projectsData} />
+        <NavProjects
+          projects={projects}
+          onRenameProject={updateProject}
+          onDeleteProject={deleteProject}
+          onRenameFile={(projectId, fileId, newName) => renameProjectFile(projectId, fileId, newName)}
+          onDeleteFile={(projectId, fileId) => deleteProjectFile(projectId, fileId)}
+          onRunProject={runProject}
+        />
       </SidebarContent>
 
       <SidebarFooter>

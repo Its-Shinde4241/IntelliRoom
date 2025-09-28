@@ -31,8 +31,10 @@ interface RoomState {
   deleteRoom: (roomId: string) => Promise<void>;
 
   getRoomFiles: (roomId: string) => Promise<void>;
+  updateFileInRoom: (fileId: string, updates: Partial<FileInfo>) => void;
+  removeFileFromRoom: (fileId: string) => void;
+  addFileToRoom: (roomId: string, file: FileInfo) => void;
 
-  setActiveRoom: (room: Room | null) => void;
   clearError: () => void;
   clearRooms: () => void;
 }
@@ -169,6 +171,67 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ error: errorMessage });
     } finally {
       set({ loading: false });
+    }
+  },
+
+  updateFileInRoom: (fileId: string, updates: Partial<FileInfo>) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.files.map(file =>
+        file.id === fileId ? { ...file, ...updates } : file
+      )
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it contains this file
+    if (state.activeRoom) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: state.activeRoom.files.map(file =>
+          file.id === fileId ? { ...file, ...updates } : file
+        )
+      };
+      set({ activeRoom: updatedActiveRoom });
+    }
+  },
+
+  removeFileFromRoom: (fileId: string) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.files.filter(file => file.id !== fileId)
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it contains this file
+    if (state.activeRoom) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: state.activeRoom.files.filter(file => file.id !== fileId)
+      };
+      set({ activeRoom: updatedActiveRoom });
+    }
+  },
+
+  addFileToRoom: (roomId: string, file: FileInfo) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.id === roomId ? [...room.files, file] : room.files
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it's the target room
+    if (state.activeRoom?.id === roomId) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: [...state.activeRoom.files, file]
+      };
+      set({ activeRoom: updatedActiveRoom });
     }
   },
 

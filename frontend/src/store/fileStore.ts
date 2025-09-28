@@ -180,12 +180,10 @@ const useFileStore = create<FileState>((set, get) => ({
     await get().updateFile({
       id: fileId,
       name: newName
-
     });
   },
 
   updateFileContent: async (fileId: string, content: string) => {
-    // Optimistic update for better UX
     const currentFile = get().activeFile;
     const originalFiles = get().files;
 
