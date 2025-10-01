@@ -25,10 +25,6 @@ export default function Signupform() {
 
   const navigate = useNavigate();
 
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
   const validateForm = () => {
     if (!email || !password || !confirmPassword) {
       setFormError("Please fill in all fields");
@@ -56,7 +52,7 @@ export default function Signupform() {
 
     try {
       await signUp(email, password);
-      toast.success("Accoount created successfully");
+      toast.success("Account created successfully");
       navigate("/", { replace: true });
     } catch (error) {
       toast.error(getFirebaseErrorMessage(error), { position: "top-right" });
@@ -66,7 +62,7 @@ export default function Signupform() {
   const handleGoogleSignIn = async () => {
     try {
       await signInwithGoogle();
-      toast.success("Accoount created successfully");
+      toast.success("Account created successfully");
       navigate("/", { replace: true });
     } catch (error) {
       toast.error(getFirebaseErrorMessage(error));
@@ -96,28 +92,33 @@ export default function Signupform() {
 
   const passwordStrength = getPasswordStrength(password);
 
+  // Check for authenticated user AFTER all hooks are called
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-              <Code2 className="w-8 h-8 text-foreground" />
+            <div className="p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-border">
+              <Code2 className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-3xl font-bold text-foreground">Intelliroom</h1>
           </div>
-          <p className="text-foreground/80 text-lg">
+          <p className="text-muted-foreground text-lg">
             Join the collaborative coding revolution
           </p>
         </div>
 
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20 shadow-panel">
+        <Card className="bg-card/80 backdrop-blur-sm border-border shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-foreground">
               Create Account
             </CardTitle>
-            <CardDescription className="text-foreground/70">
+            <CardDescription className="text-muted-foreground">
               Start collaborating on code projects today
             </CardDescription>
           </CardHeader>
@@ -135,7 +136,7 @@ export default function Signupform() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/10 border-white/20 text-foreground placeholder:text-foreground/50 focus:bg-white/20"
+                  className="bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:bg-background"
                   required
                 />
               </div>
@@ -151,27 +152,26 @@ export default function Signupform() {
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-white/10 border-white/20 text-foreground placeholder:text-foreground/50 focus:bg-white/20"
+                  className="bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:bg-background"
                   required
                 />
                 {password && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <div className="flex-1 bg-white/20 rounded-full h-2">
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 bg-muted rounded-full h-2">
                       <div
-                        className={`h-0.5 rounded-full transition-all duration-300 ${
-                          passwordStrength.strength === 1
-                            ? "w-1/4 bg-red-500"
+                        className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.strength === 1
+                            ? "w-1/4 bg-destructive"
                             : passwordStrength.strength === 2
-                            ? "w-2/4 bg-yellow-500"
-                            : passwordStrength.strength === 3
-                            ? "w-3/4 bg-blue-500"
-                            : passwordStrength.strength === 4
-                            ? "w-full bg-green-500"
-                            : "w-0"
-                        }`}
+                              ? "w-2/4 bg-yellow-500"
+                              : passwordStrength.strength === 3
+                                ? "w-3/4 bg-blue-500"
+                                : passwordStrength.strength === 4
+                                  ? "w-full bg-green-500"
+                                  : "w-0"
+                          }`}
                       />
                     </div>
-                    <span className="text-xs text-foreground/70 min-w-fit">
+                    <span className="text-xs text-muted-foreground min-w-fit">
                       {passwordStrength.label}
                     </span>
                   </div>
@@ -190,18 +190,18 @@ export default function Signupform() {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="bg-white/10 border-white/20 text-foreground placeholder:text-foreground/50 focus:bg-white/20"
+                    className="bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:bg-background"
                     required
                   />
                   {confirmPassword && password === confirmPassword && (
-                    <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-400" />
+                    <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-green-500" />
                   )}
                 </div>
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-primary hover:shadow-2xs text-background font-semibold py-3 shadow-2xl cursor-pointer ring-1"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 shadow-lg"
                 disabled={isSigningUp}
               >
                 {isSigningUp ? (
@@ -217,10 +217,10 @@ export default function Signupform() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/20" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-transparent px-2 text-foreground/70">
+                <span className="bg-card px-2 text-muted-foreground">
                   Or continue with
                 </span>
               </div>
@@ -230,7 +230,7 @@ export default function Signupform() {
               type="button"
               variant="outline"
               onClick={handleGoogleSignIn}
-              className="w-full bg-secondary border-white/20 text-foreground hover:bg-secondary/10 font-semibold py-3 cursor-pointer ring-1 ring-foreground/10"
+              className="w-full border-border text-foreground hover:bg-accent hover:text-accent-foreground font-semibold py-3"
               disabled={isSigningUp}
             >
               {isSigningUp ? (
@@ -247,11 +247,11 @@ export default function Signupform() {
             </Button>
 
             <div className="text-center">
-              <p className="text-foreground/70">
+              <p className="text-muted-foreground">
                 Already have an account?{" "}
                 <Link
                   to="/auth/signin"
-                  className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-4"
+                  className="text-primary hover:text-primary/80 font-medium underline underline-offset-4"
                 >
                   Sign in here
                 </Link>
@@ -261,13 +261,13 @@ export default function Signupform() {
         </Card>
 
         <div className="text-center mt-6">
-          <p className="text-foreground/60 text-sm">
+          <p className="text-muted-foreground text-sm">
             By creating an account, you agree to our{" "}
-            <a href="#" className="underline hover:no-underline">
+            <a href="#" className="text-primary underline hover:text-primary/80">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="#" className="underline hover:no-underline">
+            <a href="#" className="text-primary underline hover:text-primary/80">
               Privacy Policy
             </a>
           </p>

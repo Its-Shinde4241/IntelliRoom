@@ -9,6 +9,7 @@ import useFileStore from "@/store/fileStore";
 import { Separator } from "@radix-ui/react-separator";
 import Terminal from "@/components/Terminal";
 import Header, { languages } from "../components/Header-comp";
+import { useTheme } from "@/components/theme-provider";
 
 export default function FilePage() {
   const params = useParams();
@@ -17,8 +18,14 @@ export default function FilePage() {
 
   const { activeFile, loading: fileLoading, getFile, updateFileContent } = useFileStore();
   const { runCode, loading: codeLoading } = useCodeStore();
+  const { theme } = useTheme();
 
-  const [mode, setMode] = useState<string>("light");
+  const [mode, setMode] = useState<string>(() => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+    }
+    return theme === "dark" ? "hc-black" : "light";
+  });
   const [editorValue, setEditorValue] = useState("");
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
@@ -50,6 +57,26 @@ export default function FilePage() {
       setEditorValue("");
     }
   }, [activeFile]);
+  useEffect(() => {
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+      setMode(systemTheme);
+
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        setMode(e.matches ? "hc-black" : "light");
+      };
+
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange);
+      };
+    } else {
+      setMode(theme === "dark" ? "hc-black" : "light");
+    }
+  }, [theme]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -216,7 +243,7 @@ export default function FilePage() {
       <Header
         language={activeFile ? getLangIdFromType(activeFile.type) : "-1"}
         mode={mode}
-        onModeToggle={() => setMode((prev) => (prev === "light" ? "vs-dark" : "light"))}
+        onModeToggle={() => setMode((prev) => (prev === "light" ? "hc-black" : "light"))}
         onRun={handleRun}
         onSave={handleSave}
         onCopy={handleCopy}

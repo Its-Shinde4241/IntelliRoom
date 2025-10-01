@@ -42,7 +42,12 @@ class RoomController {
 
     public async createRoom(req: Request, res: Response): Promise<void> {
         try {
-            const { name, password, userId } = req.body;
+            const userId = req.user?.uid;
+            const { name, password } = req.body;
+            if (!userId) {
+                res.status(401).json({ error: "User not authenticated" });
+                return;
+            }
             if (!password) {
                 res.status(400).json({ error: "Password is required to create a room" });
                 return;

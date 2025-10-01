@@ -129,7 +129,7 @@ const LanguageBadge = ({ language }: { language: string }) => {
         </Badge>
       </TooltipTrigger>
       <TooltipContent>
-        <p>Current programming language: {currentLanguage}</p>
+        <p>{currentLanguage}</p>
       </TooltipContent>
     </Tooltip>
   );
@@ -280,7 +280,7 @@ export default function Header({
 }: HeaderProps) {
   return (
     <TooltipProvider delayDuration={300}>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 bg-sidebar">
         <div className="flex items-center gap-2 px-4 w-full">
           {/* Left Section */}
           <div className="flex items-center gap-2">

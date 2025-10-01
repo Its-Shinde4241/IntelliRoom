@@ -31,7 +31,7 @@ export default function Terminal({
 
   return (
     <div
-      className="border-t bg-background flex flex-col"
+      className="border-t bg-sidebar flex flex-col"
       style={{ height: terminalHeight }}
     >
       {/* Resize handle - More prominent and standard */}
@@ -53,22 +53,20 @@ export default function Terminal({
         <div className="flex">
           <button
             onClick={() => setActiveTab("input")}
-            className={`px-3 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-              activeTab === "input"
+            className={`px-3 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${activeTab === "input"
                 ? "border-primary text-primary bg-background"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             <FileInput className="h-3 w-3" />
             Input
           </button>
           <button
             onClick={() => setActiveTab("output")}
-            className={`px-3 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-              activeTab === "output"
+            className={`px-3 py-2 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${activeTab === "output"
                 ? "border-primary text-primary bg-background"
                 : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             <FileOutput className="h-3 w-3" />
             Output

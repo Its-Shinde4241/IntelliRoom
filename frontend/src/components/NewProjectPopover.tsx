@@ -89,7 +89,7 @@ export default function NewProjectPopover({
     };
 
     const defaultTrigger = (
-        <SidebarMenuButton variant="outline" tooltip="New Project">
+        <SidebarMenuButton variant="outline" tooltip="New Project" className="bg-sidebar">
             <Plus className="size-4" />
             <span><b>New Project</b></span>
         </SidebarMenuButton>

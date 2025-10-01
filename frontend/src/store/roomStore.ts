@@ -26,7 +26,7 @@ interface RoomState {
 
   getUserRooms: (userId: string) => Promise<void>;
   getRoom: (roomId: string) => Promise<void>;
-  createRoom: (name: string, password?: string, userId?: string) => Promise<void>;
+  createRoom: (name: string, password?: string) => Promise<void>;
   updateRoom: (roomId: string, updates: { name?: string; password?: string }) => Promise<void>;
   deleteRoom: (roomId: string) => Promise<void>;
 
@@ -79,13 +79,12 @@ const useRoomStore = create<RoomState>((set, get) => ({
     }
   },
 
-  createRoom: async (name: string, password?: string, userId?: string) => {
+  createRoom: async (name: string, password?: string) => {
     try {
       set({ loading: true, error: null });
       const response = await api.post<Room>('/rooms', {
         name,
         password,
-        userId
       });
       const newRoom = {
         ...response.data,

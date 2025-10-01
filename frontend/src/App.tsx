@@ -11,6 +11,8 @@ import ProjectPage from "./pages/ProjectPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import FilePage from "./pages/FilePage";
 import ProjectFilesPage from "./pages/ProjectFilesPage";
+import AccountPage from "./pages/AccountPage";
+import { ThemeProvider } from "./components/theme-provider";
 
 export default function App() {
   const { loading, initAuthListener } = useAuthStore();
@@ -21,14 +23,18 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin h-10 w-10 text-primary" />
-      </div>
+
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+
+        <div className="h-screen flex items-center justify-center bg-background">
+          <Loader2 className="animate-spin h-10 w-10 text-primary" />
+        </div>
+      </ThemeProvider>
     );
   }
 
   return (
-    <>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Toaster richColors />
       <Router>
         <Routes>
@@ -84,8 +90,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
-    </>
+    </ThemeProvider>
   );
 }

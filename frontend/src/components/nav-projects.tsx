@@ -11,8 +11,8 @@ import {
   FolderOpen,
   Folder,
 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Collapsible,
   CollapsibleContent,
@@ -68,11 +68,26 @@ export default function NavProjects({
   onRunProject,
 }: NavProjectsProps) {
   const navigate = useNavigate();
+  const params = useParams();
+  const currentProjectId = params.projectId;
+  const currentFileType = params.fileType;
+
   const [projectToDelete, setProjectToDelete] = useState<{
     id: string;
     name: string;
   } | null>(null);
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
+
+  // Auto-expand the currently active project
+  useEffect(() => {
+    if (currentProjectId) {
+      setOpenProjects(prev => {
+        const newSet = new Set(prev);
+        newSet.add(currentProjectId);
+        return newSet;
+      });
+    }
+  }, [currentProjectId]);
 
   const handleFileClick = (projectId: string, fileType: string) => {
     navigate(`/project/${projectId}/${fileType}`);
@@ -146,11 +161,14 @@ export default function NavProjects({
           {projects.map((project) => {
             const ProjectIcon = getProjectIcon(project.id);
 
+            const isActiveProject = project.id === currentProjectId;
+
             return (
               <Collapsible
                 key={project.id}
                 asChild
-                defaultOpen={project.isActive}
+                defaultOpen={project.isActive || isActiveProject}
+                open={openProjects.has(project.id)}
                 className="group/collapsible"
                 onOpenChange={(isOpen) => handleProjectToggle(project.id, isOpen)}
               >
@@ -159,7 +177,10 @@ export default function NavProjects({
                     <ContextMenuTrigger asChild>
                       <div className="flex items-center flex-1 group/menu-button">
                         <CollapsibleTrigger asChild className="flex-1">
-                          <SidebarMenuButton tooltip={project.name}>
+                          <SidebarMenuButton
+                            tooltip={project.name}
+                            className={`${isActiveProject ? 'bg-accent text-accent-foreground font-medium' : ''}`}
+                          >
                             <ProjectIcon className="h-4 w-4" />
                             <span>{project.name}</span>
                             <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -191,6 +212,8 @@ export default function NavProjects({
                     <SidebarMenuSub>
                       {project.files.map((file: WebDevFile) => {
                         const FileTypeIcon = getFileIcon(file.type);
+                        const isActiveFile = project.id === currentProjectId && file.type === currentFileType;
+
                         return (
                           <SidebarMenuSubItem key={file.id}>
                             <ContextMenu>
@@ -200,7 +223,7 @@ export default function NavProjects({
                                     onClick={() =>
                                       handleFileClick(project.id, file.type)
                                     }
-                                    className="flex-1"
+                                    className={`flex-1 ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
                                   >
                                     <FileTypeIcon className="h-4 w-4" />
                                     <span>{file.name}</span>

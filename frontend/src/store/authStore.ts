@@ -28,7 +28,7 @@ type AuthState = {
     signIn: (email: string, password: string) => void;
     signInwithGoogle: () => void;
     signOut: () => void;
-    updateProfile: (name: string, email: string) => void;
+    updateProfile: (name: string, email: string, password?: string, currentPassword?: string) => void;
     checkAuth: () => Promise<boolean>;
 };
 
@@ -104,6 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (!isBackendVerified) {
                 throw new Error("Backend verification failed after sign in");
             }
+            set({ user: UserCredentials.user });
             // checkAuth will set the user if verification succeeds
         } catch (error) {
             console.error("Sign in error:", error);

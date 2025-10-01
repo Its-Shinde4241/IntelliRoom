@@ -6,22 +6,31 @@ import { toast } from "sonner";
 import { useProjectStore } from "@/store/projectStore";
 import { Separator } from "@radix-ui/react-separator";
 import Header, { languages } from "../components/Header-comp";
+import { useTheme } from "@/components/theme-provider";
 
 export default function ProjectFilesPage() {
     const params = useParams();
     const projectId = params.projectId;
     const fileType = params.fileType;
     const navigate = useNavigate();
+    const { theme } = useTheme();
 
     const { projects, loading: projectLoading, getProjectFiles, updateProjectFile, runProject } = useProjectStore();
 
-    const [mode, setMode] = useState<string>("light");
+    const [mode, setMode] = useState<string>(() => {
+        if (theme === "system") {
+            return window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+        }
+        return theme === "dark" ? "hc-black" : "light";
+    });
     const [editorValue, setEditorValue] = useState("");
     const [position, setPosition] = useState({ line: 1, column: 1 });
     const [charCount, setCharCount] = useState(0);
+    const [isSaving, setIsSaving] = useState(false);
 
     const editorRef = useRef<any>(null);
     const layoutTimeoutRef = useRef<NodeJS.Timeout>(null);
+    const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
     // Find current project and active file
     const currentProject = useMemo(() => {
@@ -34,6 +43,27 @@ export default function ProjectFilesPage() {
     }, [currentProject, fileType]);
 
     useEffect(() => {
+        if (theme === "system") {
+            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+            setMode(systemTheme);
+
+            // Listen for system theme changes
+            const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+            const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+                setMode(e.matches ? "hc-black" : "light");
+            };
+
+            mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+            return () => {
+                mediaQuery.removeEventListener("change", handleSystemThemeChange);
+            };
+        } else {
+            setMode(theme === "dark" ? "hc-black" : "light");
+        }
+    }, [theme]);
+    // Load project files on mount
+    useEffect(() => {
         if (projectId) {
             try {
                 getProjectFiles(projectId);
@@ -45,6 +75,7 @@ export default function ProjectFilesPage() {
         }
     }, [projectId, getProjectFiles, navigate]);
 
+    // Update editor value when active file changes
     useEffect(() => {
         if (activeFile) {
             setEditorValue(activeFile.content || "");
@@ -53,8 +84,7 @@ export default function ProjectFilesPage() {
         }
     }, [activeFile]);
 
-
-
+    // Handle editor layout
     useEffect(() => {
         if (editorRef.current) {
             if (layoutTimeoutRef.current) clearTimeout(layoutTimeoutRef.current);
@@ -65,35 +95,51 @@ export default function ProjectFilesPage() {
         };
     });
 
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
+    }, []);
 
     const handleEditorDidMount: OnMount = useCallback((editor) => {
         editorRef.current = editor;
 
+        // Monaco editor Ctrl+S handler (backup for when editor is focused)
         editor.onKeyDown((e) => {
             if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
                 e.preventDefault();
-                handleSave();
+                // The document-level handler will handle the save
             }
         });
 
         editor.onDidChangeCursorPosition((e) =>
             setPosition({ line: e.position.lineNumber, column: e.position.column })
         );
-        editor.onDidChangeModelContent(() => setCharCount(editor.getValue().length));
+
+        editor.onDidChangeModelContent(() => {
+            const content = editor.getValue();
+            setCharCount(content.length);
+            setEditorValue(content); // Keep editor value in sync
+        });
+
         setCharCount(editor.getValue().length);
         setTimeout(() => editor.layout(), 100);
     }, []);
 
     const getLangIdFromType = useCallback((fileType: string) => {
-        // For HTML/CSS/JS web projects, we don't want terminal execution
-        // Return -1 to hide the Run button in Header
         if (fileType === "html" || fileType === "css" || fileType === "js") {
             return "-1";
         }
 
         const typeToLanguageMap: Record<string, string> = {
-            ts: "typescript", py: "python", java: "java", cpp: "cpp", c: "c"
+            ts: "typescript",
+            py: "python",
+            java: "java",
+            cpp: "cpp",
+            c: "c"
         };
+
         const languageName = typeToLanguageMap[fileType] || "txt";
         const language = languages.find(
             (lang) => lang.monaco === languageName || lang.id === languageName
@@ -103,9 +149,19 @@ export default function ProjectFilesPage() {
 
     const getMonacoLanguage = useCallback((fileType: string) => {
         const typeToMonacoMap: Record<string, string> = {
-            js: "javascript", ts: "typescript", py: "python", html: "html",
-            css: "css", java: "java", cpp: "cpp", c: "c", json: "json",
-            xml: "xml", sql: "sql", md: "markdown", txt: "plaintext"
+            js: "javascript",
+            ts: "typescript",
+            py: "python",
+            html: "html",
+            css: "css",
+            java: "java",
+            cpp: "cpp",
+            c: "c",
+            json: "json",
+            xml: "xml",
+            sql: "sql",
+            md: "markdown",
+            txt: "plaintext"
         };
         return typeToMonacoMap[fileType] || "plaintext";
     }, []);
@@ -118,25 +174,42 @@ export default function ProjectFilesPage() {
         setEditorValue(value || "");
     }, []);
 
-
-
-
-
+    // Improved save function with debouncing and proper content handling
     const handleSave = useCallback(async () => {
-        if (!activeFile || !projectId) return;
-        try {
-            await updateProjectFile(projectId, activeFile.id, { content: editorValue });
-            toast.success("File saved!", {
-                duration: 1000,
-                style: { width: "auto", minWidth: "fit-content", padding: 6 },
-            });
-        } catch (error) {
-            toast.error("Failed to save file", {
-                duration: 2000,
-                style: { width: "auto", minWidth: "fit-content", padding: 6 },
-            });
+        if (!activeFile || !projectId || isSaving) return;
+
+        // Clear any pending save
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
         }
-    }, [activeFile, editorValue, projectId, updateProjectFile]);
+
+        // Debounce saves to prevent double calls
+        saveTimeoutRef.current = setTimeout(async () => {
+            setIsSaving(true);
+
+            try {
+                // Always get the latest content from the editor
+                const currentContent = editorRef.current ? editorRef.current.getValue() : editorValue;
+
+                await updateProjectFile(projectId, activeFile.id, { content: currentContent });
+
+                toast.success("File saved!", {
+                    duration: 1000,
+                    style: { width: "auto", minWidth: "fit-content", padding: 6 },
+                });
+            } catch (error) {
+                console.error('Save error:', error);
+                toast.error("Failed to save file", {
+                    duration: 2000,
+                    style: { width: "auto", minWidth: "fit-content", padding: 6 },
+                });
+            } finally {
+                setIsSaving(false);
+            }
+        }, 100); // 100ms debounce
+    }, [activeFile, editorValue, projectId, updateProjectFile, isSaving]);
+
+    // Add document-level Ctrl+S save functionality
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -164,7 +237,9 @@ export default function ProjectFilesPage() {
 
     const handleCopy = useCallback(async () => {
         try {
-            await navigator.clipboard.writeText(editorValue);
+            // Get current editor content for copying
+            const currentContent = editorRef.current ? editorRef.current.getValue() : editorValue;
+            await navigator.clipboard.writeText(currentContent);
             toast.success("Copied to clipboard!", {
                 duration: 1000,
                 style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -176,8 +251,10 @@ export default function ProjectFilesPage() {
 
     const handleDownload = useCallback(() => {
         if (!activeFile) return;
+        // Get current editor content for download
+        const currentContent = editorRef.current ? editorRef.current.getValue() : editorValue;
         const filename = `${activeFile.name}.${activeFile.type}`;
-        const blob = new Blob([editorValue], { type: "text/plain" });
+        const blob = new Blob([currentContent], { type: "text/plain" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = filename;
@@ -222,15 +299,13 @@ export default function ProjectFilesPage() {
                 language={activeFile ? getLangIdFromType(activeFile.type) : "-1"}
                 mode={mode}
                 onModeToggle={() => setMode((prev) => (prev === "light" ? "vs-dark" : "light"))}
-                onRun={() => { }} // Disabled for HTML/CSS/JS projects
+                onRun={() => { }}
                 onSave={handleSave}
                 onCopy={handleCopy}
                 onDownload={handleDownload}
-                isCompiling={false} // No compilation for web projects
+                isCompiling={isSaving}
                 onHandlePreview={handlePreview}
             />
-
-
 
             <div className="flex-1 flex flex-col overflow-hidden editor-container">
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -264,10 +339,12 @@ export default function ProjectFilesPage() {
                                 <span>Col {position.column}</span>
                                 <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
                                 <span>{charCount} chars</span>
-                                {projectLoading && (
+                                {(projectLoading || isSaving) && (
                                     <>
                                         <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
-                                        <span className="text-yellow-600 animate-pulse">Loading...</span>
+                                        <span className="text-yellow-600 animate-pulse">
+                                            {isSaving ? "Saving..." : "Loading..."}
+                                        </span>
                                     </>
                                 )}
                             </div>

@@ -87,7 +87,7 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
       <PopoverTrigger asChild>
         <SidebarMenuButton
           variant={"outline"}
-          className="w-full justify-start py-2"
+          className="w-full justify-start py-4 bg-sidebar"
           tooltip="Search Rooms"
         >
           <Plus className="h-4 w-4" />

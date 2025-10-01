@@ -30,7 +30,7 @@ interface SearchRoomDialogProps {
 
 export default function SearchRoomDialog({ trigger, onRoomSelect }: SearchRoomDialogProps) {
     const navigate = useNavigate()
-    const { rooms, setActiveRoom, loading } = useRoomStore()
+    const { rooms, loading } = useRoomStore()
 
     const [open, setOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
@@ -51,7 +51,7 @@ export default function SearchRoomDialog({ trigger, onRoomSelect }: SearchRoomDi
 
     const handleRoomSelect = async (room: Room) => {
         try {
-            setActiveRoom(room)
+            // setActiveRoom(room)
             onRoomSelect?.(room)
 
             navigate(`/room/${room.id}`)
@@ -68,7 +68,7 @@ export default function SearchRoomDialog({ trigger, onRoomSelect }: SearchRoomDi
 
     const handleFileSelect = async (room: Room, fileId: string, fileName: string) => {
         try {
-            setActiveRoom(room)
+            // setActiveRoom(room)
 
             onRoomSelect?.(room)
 
@@ -123,6 +123,7 @@ export default function SearchRoomDialog({ trigger, onRoomSelect }: SearchRoomDi
                     <SidebarMenuButton
                         variant={"outline"}
                         tooltip={"Search Rooms"}
+                        className='bg-sidebar'
                     >
                         <Search className="h-4 w-4" />
                         <span>

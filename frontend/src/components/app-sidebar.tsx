@@ -1,4 +1,3 @@
-"use client"
 
 import * as React from "react"
 import { useEffect } from "react"
@@ -21,11 +20,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/store/authStore"
 import useRoomStore from "@/store/roomStore"
 import useFileStore from "@/store/fileStore"
 import { useProjectStore } from "@/store/projectStore"
+import { ThemeToggle } from "./ThemeToggler"
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -40,8 +41,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     deleteProject,
     renameProjectFile,
     deleteProjectFile,
-    runProject
+    runProject,
   } = useProjectStore()
+  const { open } = useSidebar();
 
   // Map user to expected shape for NavUser
   const mappedUser = (user && (user?.displayName || user?.email || user?.photoURL))
@@ -63,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <CodeXml className="size-4" />
                 </div>
@@ -77,11 +79,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
 
         {/* Action buttons */}
-        <SidebarMenu>
+        <SidebarMenu className="gap-2">
           <SidebarMenuItem>
             <NewRoomPopover
               onCreateRoom={(roomName, password) => {
-                createRoom(roomName, password, user?.uid)
+                createRoom(roomName, password)
               }}
             />
           </SidebarMenuItem>
@@ -112,7 +114,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         />
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="flex flex-col align-middle justify-center">
+        <SidebarContent className={`flex items-center overflow-hidden ${open ? 'justify-center mb-2' : 'justify-center'}`}>
+          <ThemeToggle />
+        </SidebarContent>
         <NavUser user={mappedUser} />
       </SidebarFooter>
       <SidebarRail />

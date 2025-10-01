@@ -166,7 +166,7 @@ export function NavRooms({
   const handleDeleteRoom = async (roomId: string) => {
     try {
       await deleteRoom(roomId);
-      setRoomToDelete({ id: roomId, name: rooms.find((r) => r.id === roomId)?.name || "" });
+      setRoomToDelete(null);
       toast.success("Room deleted successfully", {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },

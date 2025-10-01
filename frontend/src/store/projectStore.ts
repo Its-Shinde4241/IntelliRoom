@@ -56,103 +56,6 @@ const handleError = (error: any, defaultMessage: string) => {
     return error?.response?.data?.error || error?.message || defaultMessage;
 };
 
-const getDefaultFiles = (projectName: string, projectId: string) => [
-    {
-        name: 'index',
-        type: 'html' as const,
-        content: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${projectName}</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Welcome to ${projectName}</h1>
-        <p>Start building your web project here!</p>
-        <button id="clickMe">Click Me!</button>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>`
-    },
-    {
-        name: 'styles',
-        type: 'css' as const,
-        content: `/* ${projectName} Styles */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: 'Arial', sans-serif;
-    line-height: 1.6;
-    color: #333;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.container {
-    background: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-}
-
-h1 { color: #667eea; margin-bottom: 1rem; font-size: 2rem; }
-p { margin-bottom: 1.5rem; color: #666; }
-
-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: transform 0.2s ease;
-}
-
-button:hover { transform: translateY(-2px); }
-button:active { transform: translateY(0); }`
-    },
-    {
-        name: 'script',
-        type: 'js' as const,
-        content: `// ${projectName} JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-    const button = document.getElementById('clickMe');
-    let clickCount = 0;
-    
-    button.addEventListener('click', function() {
-        clickCount++;
-        
-        const styles = [
-            'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-        ];
-        
-        button.textContent = clickCount <= 3 ? 
-            ['Clicked once!', 'Clicked twice!', 'Triple click!'][clickCount - 1] : 
-            \`Clicked \${clickCount} times!\`;
-        
-        button.style.background = styles[Math.min(clickCount - 1, 3)];
-        button.style.transform = 'scale(1.1)';
-        setTimeout(() => button.style.transform = 'scale(1)', 150);
-    });
-    
-    console.log('${projectName} is ready!');
-});`
-    }
-];
 
 export const useProjectStore = create<ProjectState>()(
     devtools((set, get) => ({
@@ -177,23 +80,8 @@ export const useProjectStore = create<ProjectState>()(
             try {
                 const response = await api.post('/projects', { projectName });
                 const newProject = transformProject(response.data);
-
-                // Create default files
-                const defaultFiles = getDefaultFiles(projectName, newProject.id);
-                const createdFiles: WebDevFile[] = [];
-
-                for (const fileTemplate of defaultFiles) {
-                    try {
-                        const fileResponse = await api.post(`/projects/${newProject.id}/files`, fileTemplate);
-                        createdFiles.push(fileResponse.data as WebDevFile);
-                    } catch (fileError) {
-                        console.warn('Failed to create file:', fileTemplate.name, fileError);
-                    }
-                }
-
-                // Update project with created files
-                newProject.files = createdFiles;
-
+                const projectfiles = await api.get(`/projects/${newProject.id}/files`);
+                newProject.files = projectfiles.data as WebDevFile[];
                 set(state => ({
                     projects: [...state.projects, newProject],
                     loading: false,
@@ -202,6 +90,9 @@ export const useProjectStore = create<ProjectState>()(
             } catch (error: any) {
                 set({ error: handleError(error, 'Failed to create project'), loading: false });
                 throw error;
+            }
+            finally {
+                set({ loading: false });
             }
         },
 
