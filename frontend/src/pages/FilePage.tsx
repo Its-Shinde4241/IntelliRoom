@@ -1,7 +1,5 @@
-"use client";
-
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Terminal as TerminalIcon } from "lucide-react";
@@ -11,71 +9,136 @@ import useFileStore from "@/store/fileStore";
 import { Separator } from "@radix-ui/react-separator";
 import Terminal from "@/components/Terminal";
 import Header, { languages } from "../components/Header-comp";
+import { useTheme } from "@/components/theme-provider";
 
 export default function FilePage() {
   const params = useParams();
   const fileId = params.fileId;
+  const navigate = useNavigate();
 
-  const { activeFile, loading, getFile, updateFileContent, updateFileName } =
-    useFileStore();
+  const { activeFile, loading: fileLoading, getFile, updateFileContent } = useFileStore();
   const { runCode, loading: codeLoading } = useCodeStore();
-  const [mode, setMode] = useState<string>("light");
+  const { theme } = useTheme();
 
+  const [mode, setMode] = useState<string>(() => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+    }
+    return theme === "dark" ? "hc-black" : "light";
+  });
   const [editorValue, setEditorValue] = useState("");
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
   const [stdin, setStdin] = useState("");
+  const [position, setPosition] = useState({ line: 1, column: 1 });
+  const [charCount, setCharCount] = useState(0);
 
   const editorRef = useRef<any>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const layoutTimeoutRef = useRef<NodeJS.Timeout>(null);
-  const [position, setPosition] = useState({ line: 1, column: 1 });
-  const [charCount, setCharCount] = useState(0);
 
   useEffect(() => {
-    if (fileId) getFile(fileId);
-  }, [fileId, getFile]);
+    if (fileId) {
+      try {
+        getFile(fileId);
+      } catch (error) {
+        navigate("/");
+        setEditorValue("");
+        toast.error("Error loading file");
+      }
+    }
+  }, [fileId, getFile, navigate]);
 
   useEffect(() => {
-    if (activeFile) setEditorValue(activeFile.content);
+    if (activeFile) {
+      setEditorValue(activeFile.content || "");
+    } else {
+      setEditorValue("");
+    }
   }, [activeFile]);
+  useEffect(() => {
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "hc-black" : "light";
+      setMode(systemTheme);
 
-  const handleEditorDidMount: OnMount = useCallback((editor) => {
-    editorRef.current = editor;
-    editor.onDidChangeCursorPosition((e) =>
-      setPosition({ line: e.position.lineNumber, column: e.position.column })
-    );
-    editor.onDidChangeModelContent(() =>
-      setCharCount(editor.getValue().length)
-    );
-    setCharCount(editor.getValue().length);
-    setTimeout(() => editor.layout(), 100);
-  }, []);
+      // Listen for system theme changes
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        setMode(e.matches ? "hc-black" : "light");
+      };
+
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange);
+      };
+    } else {
+      setMode(theme === "dark" ? "hc-black" : "light");
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const container = document.querySelector(".editor-container");
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const newHeight = containerRect.bottom - e.clientY;
+      const minHeight = 100;
+      const maxHeight = containerRect.height * 0.7;
+      const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+      setTerminalHeight(clampedHeight);
+    };
+
+    const handleMouseUp = () => setIsResizing(false);
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "ns-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
 
   useEffect(() => {
     if (editorRef.current) {
       if (layoutTimeoutRef.current) clearTimeout(layoutTimeoutRef.current);
-      layoutTimeoutRef.current = setTimeout(
-        () => editorRef.current.layout(),
-        10
-      );
+      layoutTimeoutRef.current = setTimeout(() => editorRef.current.layout(), 10);
     }
     return () => {
       if (layoutTimeoutRef.current) clearTimeout(layoutTimeoutRef.current);
     };
   }, [isTerminalOpen, terminalHeight]);
 
+  const handleEditorDidMount: OnMount = useCallback((editor) => {
+    editorRef.current = editor;
+
+    editor.onKeyDown((e) => {
+      if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
+        e.preventDefault();
+        handleSave();
+      }
+    });
+    editor.onDidChangeCursorPosition((e) =>
+      setPosition({ line: e.position.lineNumber, column: e.position.column })
+    );
+    editor.onDidChangeModelContent(() => setCharCount(editor.getValue().length));
+    setCharCount(editor.getValue().length);
+    setTimeout(() => editor.layout(), 100);
+  }, []);
+
   const getLangIdFromType = useCallback((fileType: string) => {
     const typeToLanguageMap: Record<string, string> = {
-      js: "javascript",
-      ts: "typescript",
-      py: "python",
-      html: "html",
-      css: "css",
-      java: "java",
-      cpp: "cpp",
-      c: "c",
+      js: "javascript", ts: "typescript", py: "python", html: "html",
+      css: "css", java: "java", cpp: "cpp", c: "c"
     };
     const languageName = typeToLanguageMap[fileType] || "txt";
     const language = languages.find(
@@ -83,20 +146,30 @@ export default function FilePage() {
     );
     return language ? language.id : "-1";
   }, []);
-  const handleCodeChange = useCallback(
-    (value: string | undefined) => setEditorValue(value || ""),
-    []
-  );
+
+  const getMonacoLanguage = useCallback((fileType: string) => {
+    const typeToMonacoMap: Record<string, string> = {
+      js: "javascript", ts: "typescript", py: "python", html: "html",
+      css: "css", java: "java", cpp: "cpp", c: "c", json: "json",
+      xml: "xml", sql: "sql", md: "markdown", txt: "plaintext"
+    };
+    return typeToMonacoMap[fileType] || "plaintext";
+  }, []);
+
+  const editorLanguage = useMemo(() => {
+    return activeFile ? getMonacoLanguage(activeFile.type) : "plaintext";
+  }, [activeFile?.type, getMonacoLanguage]);
+
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    setEditorValue(value || "");
+  }, []);
 
   const toggleTerminal = useCallback(() => {
     setIsTerminalOpen((prev) => {
       const newState = !prev;
-      setTimeout(
-        () => {
-          if (editorRef.current) editorRef.current.layout();
-        },
-        newState ? 200 : 100
-      );
+      setTimeout(() => {
+        if (editorRef.current) editorRef.current.layout();
+      }, newState ? 200 : 100);
       return newState;
     });
   }, []);
@@ -114,23 +187,31 @@ export default function FilePage() {
     } catch (error: any) {
       toast.error(error);
     }
-  }, [
-    activeFile,
-    getLangIdFromType,
-    editorValue,
-    stdin,
-    runCode,
-    isTerminalOpen,
-  ]);
+  }, [activeFile, getLangIdFromType, stdin, runCode, isTerminalOpen, editorValue]);
 
   const handleSave = useCallback(async () => {
     if (!activeFile) return;
-    await updateFileContent(activeFile.id, editorValue);
+    updateFileContent(activeFile.id, editorValue);
     toast.success("File saved!", {
       duration: 1000,
       style: { width: "auto", minWidth: "fit-content", padding: 6 },
     });
-  }, [activeFile, editorValue, updateFileContent]);
+  }, [activeFile, updateFileContent, editorValue]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSave]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -146,10 +227,11 @@ export default function FilePage() {
 
   const handleDownload = useCallback(() => {
     if (!activeFile) return;
+    const filename = `${activeFile.name}.${activeFile.type}`;
     const blob = new Blob([editorValue], { type: "text/plain" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = activeFile.name;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -161,29 +243,21 @@ export default function FilePage() {
       <Header
         language={activeFile ? getLangIdFromType(activeFile.type) : "-1"}
         mode={mode}
-        onModeToggle={() =>
-          setMode((prev) => (prev === "light" ? "vs-dark" : "light"))
-        }
+        onModeToggle={() => setMode((prev) => (prev === "light" ? "hc-black" : "light"))}
         onRun={handleRun}
         onSave={handleSave}
         onCopy={handleCopy}
         onDownload={handleDownload}
-        isCompiling={codeLoading || loading}
+        isCompiling={codeLoading}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden editor-container">
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Editor */}
           <div className="flex-1 overflow-hidden">
             <Editor
+              key={activeFile?.id}
               theme={mode}
-              language={
-                activeFile
-                  ? languages.find(
-                      (lang) => lang.id === getLangIdFromType(activeFile.type)
-                    )?.monaco || "plaintext"
-                  : "plaintext"
-              }
+              language={editorLanguage}
               value={editorValue}
               onChange={handleCodeChange}
               onMount={handleEditorDidMount}
@@ -201,30 +275,18 @@ export default function FilePage() {
             />
           </div>
 
-          {/* Status Bar */}
           {activeFile?.type !== "text/plain" && (
             <div className="h-7 flex items-center justify-between pl-2 pr-1 text-xs bg-muted/80 border-t border-border/50">
               <div className="flex items-center gap-2">
                 <span>Ln {position.line}</span>
-                <Separator
-                  orientation="vertical"
-                  className="w-[1px] h-3 bg-border"
-                />
+                <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
                 <span>Col {position.column}</span>
-                <Separator
-                  orientation="vertical"
-                  className="w-[1px] h-3 bg-border"
-                />
+                <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
                 <span>{charCount} chars</span>
-                {(codeLoading || loading) && (
+                {(codeLoading || fileLoading) && (
                   <>
-                    <Separator
-                      orientation="vertical"
-                      className="w-[1px] h-3 bg-border"
-                    />
-                    <span className="text-yellow-600 animate-pulse">
-                      Loading...
-                    </span>
+                    <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
+                    <span className="text-yellow-600 animate-pulse">Loading...</span>
                   </>
                 )}
               </div>
@@ -236,17 +298,12 @@ export default function FilePage() {
               >
                 <TerminalIcon className="h-3 w-3" />
                 Terminal{" "}
-                {isTerminalOpen ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronUp className="h-3 w-3" />
-                )}
+                {isTerminalOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
               </Button>
             </div>
           )}
         </div>
 
-        {/* Terminal */}
         {isTerminalOpen && (
           <div style={{ height: terminalHeight }} className="flex-shrink-0">
             <Terminal

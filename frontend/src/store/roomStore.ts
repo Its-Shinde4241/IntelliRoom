@@ -26,13 +26,15 @@ interface RoomState {
 
   getUserRooms: (userId: string) => Promise<void>;
   getRoom: (roomId: string) => Promise<void>;
-  createRoom: (name: string, password?: string, userId?: string) => Promise<void>;
+  createRoom: (name: string, password?: string) => Promise<void>;
   updateRoom: (roomId: string, updates: { name?: string; password?: string }) => Promise<void>;
   deleteRoom: (roomId: string) => Promise<void>;
 
   getRoomFiles: (roomId: string) => Promise<void>;
+  updateFileInRoom: (fileId: string, updates: Partial<FileInfo>) => void;
+  removeFileFromRoom: (fileId: string) => void;
+  addFileToRoom: (roomId: string, file: FileInfo) => void;
 
-  setActiveRoom: (room: Room | null) => void;
   clearError: () => void;
   clearRooms: () => void;
 }
@@ -77,16 +79,19 @@ const useRoomStore = create<RoomState>((set, get) => ({
     }
   },
 
-  createRoom: async (name: string, password?: string, userId?: string) => {
+  createRoom: async (name: string, password?: string) => {
     try {
       set({ loading: true, error: null });
       const response = await api.post<Room>('/rooms', {
         name,
         password,
-        userId
       });
+      const newRoom = {
+        ...response.data,
+        files: response.data.files || [] // Initialize files as empty array if undefined
+      };
       const rooms = get().rooms;
-      set({ rooms: [...rooms, response.data] });
+      set({ rooms: [...rooms, newRoom] });
       toast.success(`Room "${name}" created successfully`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create room';
@@ -165,6 +170,67 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ error: errorMessage });
     } finally {
       set({ loading: false });
+    }
+  },
+
+  updateFileInRoom: (fileId: string, updates: Partial<FileInfo>) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.files.map(file =>
+        file.id === fileId ? { ...file, ...updates } : file
+      )
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it contains this file
+    if (state.activeRoom) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: state.activeRoom.files.map(file =>
+          file.id === fileId ? { ...file, ...updates } : file
+        )
+      };
+      set({ activeRoom: updatedActiveRoom });
+    }
+  },
+
+  removeFileFromRoom: (fileId: string) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.files.filter(file => file.id !== fileId)
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it contains this file
+    if (state.activeRoom) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: state.activeRoom.files.filter(file => file.id !== fileId)
+      };
+      set({ activeRoom: updatedActiveRoom });
+    }
+  },
+
+  addFileToRoom: (roomId: string, file: FileInfo) => {
+    const state = get();
+    const updatedRooms = state.rooms.map(room => ({
+      ...room,
+      files: room.id === roomId ? [...room.files, file] : room.files
+    }));
+
+    set({ rooms: updatedRooms });
+
+    // Also update active room if it's the target room
+    if (state.activeRoom?.id === roomId) {
+      const updatedActiveRoom = {
+        ...state.activeRoom,
+        files: [...state.activeRoom.files, file]
+      };
+      set({ activeRoom: updatedActiveRoom });
     }
   },
 

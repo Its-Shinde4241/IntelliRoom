@@ -17,6 +17,8 @@ import {
   SidebarMenuSubButton,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
 
 export function NavUser({
   user,
@@ -24,6 +26,19 @@ export function NavUser({
   user: { displayName: string; email: string; photoURL: string } | null;
 }) {
   const { isMobile } = useSidebar();
+  const navigate = useNavigate();
+  const handleAccountClick = () => {
+    navigate('/account'); // Navigate to account page
+  };
+  const { signOut } = useAuthStore();
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/auth/signin'); // Redirect to sign-in page after logout
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
   // console.log("NavUser render", user);
   return (
     <SidebarMenu>
@@ -39,15 +54,17 @@ export function NavUser({
                   src={user?.photoURL || undefined}
                   alt={user?.displayName || undefined}
                 />
-                {/* <AvatarFallback className="rounded-lg">
-                    {user?.email[0]}
-                  </AvatarFallback> */}
+                <AvatarFallback className="rounded-lg">
+                  {user?.email[0]}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {user?.displayName
-                    ? user?.displayName
-                    : user?.email.split("@")[0]}
+                  {
+                    user?.displayName && user?.displayName != "User"
+                      ? user?.displayName
+                      : user?.email.split("@")[0]
+                  }
                 </span>
                 <span className="truncate text-xs">{user?.email}</span>
               </div>
@@ -83,8 +100,8 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <SidebarMenuSubButton className="cursor-pointer">
+              <DropdownMenuItem className="cursor-pointer">
+                <SidebarMenuSubButton onClick={handleAccountClick} className="w-full">
                   <BadgeCheck />
                   Account
                 </SidebarMenuSubButton>
@@ -92,7 +109,9 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
-              <SidebarMenuSubButton className="text-destructive cursor-pointer focus:text-destructive">
+              <SidebarMenuSubButton
+                onClick={handleLogout}
+                className="text-destructive cursor-pointer focus:text-destructive">
                 <LogOut className="size-4 !text-destructive" />
                 <span className="text-destructive">Log Out</span>
               </SidebarMenuSubButton>

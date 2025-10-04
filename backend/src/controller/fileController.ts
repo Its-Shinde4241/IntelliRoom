@@ -13,8 +13,9 @@ class FileController {
 
     public async getFileById(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { fileId } = req.params;
-            const result = await prisma.file.findUnique({ where: { id: fileId } });
+            const result = await prisma.file.findUnique({ where: { id: fileId, userId } });
             if (result) {
                 res.status(200).json(result);
             } else {
@@ -28,10 +29,11 @@ class FileController {
 
     public async createFile(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { type, name, roomId, projectId } = req.body;
 
             const existingFile = await prisma.file.findFirst({
-                where: { name, type, roomId, projectId }
+                where: { name, type, roomId, projectId, userId }
             });
 
             if (existingFile) {
@@ -39,7 +41,7 @@ class FileController {
                 return;
             }
             const result = await prisma.file.create({
-                data: { type, name, content: SAMPLE_CODES[type as keyof typeof SAMPLE_CODES], roomId, projectId }
+                data: { type, name, content: SAMPLE_CODES[type as keyof typeof SAMPLE_CODES], roomId, projectId, userId }
             });
             res.status(201).json(result);
         } catch (error) {
@@ -49,12 +51,13 @@ class FileController {
 
     public async updateFile(req: Request, res: Response): Promise<void> {
         try {
-            // console.log("REQ BODY:", req.body);
-            // console.log("REQ PARAMS:", req.params);
+            console.log("Update file request body:", req.body);
+            console.log("Update file request params:", req.user);
+            const userId = req.user?.uid;
             const { fileId } = req.params;
             const { type, name, content, roomId, projectId } = req.body;
             const result = await prisma.file.update({
-                where: { id: fileId },
+                where: { id: fileId, userId },
                 data: { type, name, content, roomId, projectId }
             });
             res.status(200).json(result);
@@ -65,8 +68,9 @@ class FileController {
 
     public async deleteFile(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { fileId } = req.params;
-            await prisma.file.delete({ where: { id: fileId } });
+            await prisma.file.delete({ where: { id: fileId, userId: userId } });
             res.status(204).send();
         } catch (error) {
             FileController.handleError(res, error, "Failed to delete file");

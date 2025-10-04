@@ -28,10 +28,7 @@ export default function Signinform() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (user) {
-    return <Navigate to={"/"} replace />;
-  }
-
+  // Move this check AFTER all hooks are called
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
@@ -62,33 +59,38 @@ export default function Signinform() {
     }
   };
 
+  // Check for authenticated user AFTER all hooks
+  if (user) {
+    return <Navigate to={"/"} replace />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
-              <Code2 className="w-8 h-8 text-black" />
+            <div className="p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-border">
+              <Code2 className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-black">Intelliroom</h1>
+            <h1 className="text-3xl font-bold text-foreground">Intelliroom</h1>
           </div>
-          <p className="text-black/80 text-lg">
+          <p className="text-muted-foreground text-lg">
             Sign in to your collaborative IDE
           </p>
         </div>
 
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20 shadow-panel">
+        <Card className="bg-card/80 backdrop-blur-sm border-border shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-black">Welcome Back</CardTitle>
-            <CardDescription className="text-black/70">
+            <CardTitle className="text-2xl text-foreground">Welcome Back</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Enter your credentials to access your workspace
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             {formError && (
-              <Alert className="bg-destructive/20 border-destructive/50 text-black">
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/50">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{formError}</AlertDescription>
               </Alert>
@@ -96,7 +98,7 @@ export default function Signinform() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-black">
+                <Label htmlFor="email" className="text-foreground">
                   Email
                 </Label>
                 <Input
@@ -106,13 +108,13 @@ export default function Signinform() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-white/10 border-white/20 text-black placeholder:text-black/50 focus:bg-white/20"
+                  className="bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:bg-background"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-black">
+                <Label htmlFor="password" className="text-foreground">
                   Password
                 </Label>
                 <Input
@@ -122,7 +124,7 @@ export default function Signinform() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-white/10 border-white/20 text-black placeholder:text-black/50 focus:bg-white/20"
+                  className="bg-background/50 border-border text-foreground placeholder:text-muted-foreground focus:bg-background"
                   required
                 />
               </div>
@@ -132,7 +134,7 @@ export default function Signinform() {
 
               <Button
                 type="submit"
-                className="w-full bg-primary hover:shadow-2xs text-background font-semibold py-3 shadow-2xl cursor-pointer ring-1"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 shadow-lg"
                 disabled={isSigningIn}
               >
                 {isSigningIn ? (
@@ -148,10 +150,10 @@ export default function Signinform() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/20" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-transparent px-2 text-black/70">
+                <span className="bg-card px-2 text-muted-foreground">
                   Or continue with
                 </span>
               </div>
@@ -161,7 +163,7 @@ export default function Signinform() {
               type="button"
               variant="outline"
               onClick={handleGoogleSignIn}
-              className="w-full bg-secondary border-white/20 text-foreground hover:bg-secondary/10 font-semibold py-3 cursor-pointer ring-1 ring-foreground/10"
+              className="w-full border-border text-foreground hover:bg-accent hover:text-accent-foreground font-semibold py-3"
               disabled={isSigningIn}
             >
               {isSigningIn ? (
@@ -178,11 +180,11 @@ export default function Signinform() {
             </Button>
 
             <div className="text-center">
-              <p className="text-black/70">
+              <p className="text-muted-foreground">
                 Don't have an account?{" "}
                 <Link
                   to="/auth/signup"
-                  className="text-foreground hover:text-foreground/80 font-medium underline underline-offset-4"
+                  className="text-primary hover:text-primary/80 font-medium underline underline-offset-4"
                 >
                   Sign up here
                 </Link>
@@ -192,7 +194,7 @@ export default function Signinform() {
         </Card>
 
         <div className="text-center mt-6">
-          <p className="text-black/60 text-sm">
+          <p className="text-muted-foreground text-sm">
             ©2025 Intelliroom. All rights reserved.
           </p>
         </div>

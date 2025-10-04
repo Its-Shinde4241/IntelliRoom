@@ -1,209 +1,126 @@
-import * as React from "react";
-import { useEffect } from "react";
+
+import * as React from "react"
+import { useEffect } from "react"
 import {
   CodeXml,
-  FileCode,
-  FolderIcon,
-  Layout,
-  Plus,
-  Search,
-  FolderPlus,
-} from "lucide-react";
+} from "lucide-react"
 
-import { NavRooms } from "@/components/nav-rooms";
-import { NavUser } from "@/components/nav-user";
-import { AppLogo } from "./AppLogo";
+import { NavRooms } from "@/components/nav-rooms"
+import { NavUser } from "@/components/nav-user"
+import NavProjects from "./nav-projects"
+import NewRoomPopover from "./NewRoomPopover"
+import NewProjectPopover from "./NewProjectPopover"
+import SearchRoomDialog from "./SearchRoomDialog"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
-} from "@/components/ui/sidebar";
-import { useAuthStore } from "@/store/authStore";
-import NavProjects from "./nav-projects";
+  useSidebar,
+} from "@/components/ui/sidebar"
+import { useAuthStore } from "@/store/authStore"
+import useRoomStore from "@/store/roomStore"
+import useFileStore from "@/store/fileStore"
+import { useProjectStore } from "@/store/projectStore"
+import { ThemeToggle } from "./ThemeToggler"
 
-// This is sample data.
-const data = {
-  projectsData: [
-    {
-      id: "project1",
-      name: "Landing Page",
-      icon: Layout,
-      files: [
-        { type: "html", id: "html1", name: "index.html" },
-        { type: "css", id: "css1", name: "styles.css" },
-        { type: "js", id: "js1", name: "main.js" },
-      ],
-    },
-    {
-      id: "project2",
-      name: "Portfolio",
-      icon: FolderIcon,
-      files: [
-        { type: "html", id: "html2", name: "portfolio.html" },
-        { type: "css", id: "css2", name: "portfolio.css" },
-        { type: "js", id: "js2", name: "portfolio.js" },
-      ],
-    },
-    {
-      id: "project3",
-      name: "Blog",
-      icon: FileCode,
-      files: [
-        { type: "html", id: "html3", name: "blog.html" },
-        { type: "css", id: "css3", name: "blog.css" },
-        { type: "js", id: "js3", name: "blog.js" },
-      ],
-    },
-  ],
-};
-
-import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import useRoomStore from "@/store/roomStore";
-import useFileStore from "@/store/fileStore";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuthStore();
-  const { rooms, getUserRooms, deleteRoom, updateRoom } = useRoomStore();
-  const { createFile } = useFileStore();
-
-  const projectsData = data.projectsData.map((project) => ({
-    ...project,
-    files: project.files.map((file) => ({
-      ...file,
-      type: file.type as "html" | "css" | "js",
-    })),
-  }));
+  const { user } = useAuthStore()
+  const { getUserRooms, createRoom } = useRoomStore()
+  const { createFile, activeFile, deleteFile, updateFileName } = useFileStore()
+  const {
+    projects,
+    fetchUserProjects,
+    createProject,
+    updateProject,
+    deleteProject,
+    renameProjectFile,
+    deleteProjectFile,
+    runProject,
+  } = useProjectStore()
+  const { open } = useSidebar();
 
   // Map user to expected shape for NavUser
-  const mappedUser =
-    (user && user?.displayName) || user?.email || user?.photoURL
-      ? {
-          displayName: user.displayName || "User",
-          email: user.email || "",
-          photoURL: user.photoURL || "",
-        }
-      : null;
+  const mappedUser = (user && (user?.displayName || user?.email || user?.photoURL))
+    ? {
+      displayName: user.displayName || "User",
+      email: user.email || "",
+      photoURL: user.photoURL || "",
+    }
+    : null
 
   useEffect(() => {
-    // console.log("Fetching rooms for user:", user?.uid);
-    getUserRooms(user?.uid as string);
-  }, [user?.uid, getUserRooms]);
+    getUserRooms(user?.uid as string)
+    fetchUserProjects()
+  }, [user?.uid, getUserRooms, fetchUserProjects])
 
   return (
-    <Sidebar
-      collapsible="icon"
-      {...props}
-      className="group relative h-screen flex flex-col"
-    >
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <AppLogo name="INTELLIROOM" logo={CodeXml} />
-        <SidebarSeparator />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <CodeXml className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">INTELLIROOM</span>
+                  <span className="truncate text-xs">Code Smart</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
 
-        {/* Top Actions */}
-        <SidebarGroup className="flex flex-col gap-2 p-2">
-          {/* New Room Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
-                onClick={() => {
-                  /* Handle new room creation */
-                  console.log("New Room Clicked");
-                }}
-              >
-                <Plus className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  New Room
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              New Room
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Search Rooms Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
-                onClick={() => {
-                  /* Handle room search */
-                  console.log("Search Rooms Clicked");
-                }}
-              >
-                <Search className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  Search Rooms
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              Search Rooms
-            </TooltipContent>
-          </Tooltip>
-
-          {/* New Project Button */}
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-2 h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
-                onClick={() => {
-                  /* Handle new project creation */
-                  console.log("New Project Clicked");
-                }}
-              >
-                <FolderPlus className="h-4 w-4 shrink-0" />
-                <span className="group-data-[collapsible=icon]:hidden">
-                  New Project
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="group-data-[state=expanded]:hidden"
-            >
-              New Project
-            </TooltipContent>
-          </Tooltip>
-        </SidebarGroup>
-        <SidebarSeparator />
-      </SidebarHeader>
-      <SidebarContent
-        className="flex flex-col flex-grow"
-        style={{ scrollbarWidth: "thin" }}
-      >
-        <div className="pr-2">
-          <ScrollArea className="flex-1">
-            <NavRooms
-              rooms={rooms}
-              onAddFile={createFile}
-              onRenameRoom={updateRoom}
+        {/* Action buttons */}
+        <SidebarMenu className="gap-2">
+          <SidebarMenuItem>
+            <NewRoomPopover
+              onCreateRoom={(roomName, password) => {
+                createRoom(roomName, password)
+              }}
             />
-            <NavProjects projects={projectsData} />
-          </ScrollArea>
-        </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SearchRoomDialog />
+          </SidebarMenuItem>
+          <SidebarMenuItem key="newProject">
+            <NewProjectPopover onCreateProject={createProject} />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent style={{ scrollbarWidth: "none" }}>
+        <NavRooms
+          // rooms={rooms}
+          activeFileId={activeFile?.id as string}
+          onAddFile={createFile}
+          onDeleteFile={deleteFile}
+          onRenameFile={updateFileName}
+        />
+        <NavProjects
+          projects={projects}
+          onRenameProject={updateProject}
+          onDeleteProject={deleteProject}
+          onRenameFile={(projectId, fileId, newName) => renameProjectFile(projectId, fileId, newName)}
+          onDeleteFile={(projectId, fileId) => deleteProjectFile(projectId, fileId)}
+          onRunProject={runProject}
+        />
       </SidebarContent>
-      <SidebarFooter className="pb-3">
-        <SidebarSeparator />
+
+      <SidebarFooter className="flex flex-col align-middle justify-center">
+        <SidebarContent className={`flex items-center overflow-hidden ${open ? 'justify-center mb-2' : 'justify-center'}`}>
+          <ThemeToggle />
+        </SidebarContent>
         <NavUser user={mappedUser} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
+  )
 }

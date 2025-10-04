@@ -44,6 +44,17 @@ Before running this project, make sure you have:
 - Firebase project with Auth enabled
 - Judge0 API access (optional, for code execution)
 
+## ⚠️ Important Security Notice
+
+**CRITICAL**: Never commit your Firebase service account key (`serviceAccountKey.json`) to version control. This file contains sensitive credentials that could compromise your Firebase project if exposed.
+
+### Security Best Practices:
+
+- Add `serviceAccountKey.json` to your `.gitignore` file
+- Store credentials as environment variables in production
+- Rotate keys immediately if accidentally exposed
+- Use Firebase Admin SDK securely in server environments only
+
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
@@ -65,6 +76,19 @@ Create a `.env` file in the backend directory:
 ```env
 DATABASE_URL="mysql://username:password@localhost:3306/intelliroom"
 FIREBASE_SERVICE_ACCOUNT_KEY_PATH="./serviceAccountKey.json"
+PORT=3001
+NODE_ENV=development
+JWT_SECRET=your_jwt_secret_key
+```
+
+**Important**: Make sure to add the following to your `.gitignore` file:
+
+```
+.env
+serviceAccountKey.json
+node_modules/
+dist/
+build/
 ```
 
 Set up the database:
@@ -112,8 +136,21 @@ npm run dev
 
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
 2. Enable Authentication with Email/Password and Google providers
-3. Download the service account key and place it as `serviceAccountKey.json` in the backend directory
+3. Generate a service account key:
+   - Go to Project Settings → Service Accounts
+   - Click "Generate new private key"
+   - Save as `serviceAccountKey.json` in the backend directory
+   - **NEVER commit this file to version control**
 4. Copy the Firebase config to your frontend `.env` file
+5. Set up Firestore database rules for secure data access
+
+**Security Note**: In production, use environment variables instead of the service account key file:
+
+```env
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_PRIVATE_KEY=your_private_key
+FIREBASE_CLIENT_EMAIL=your_client_email
+```
 
 ## 📁 Project Structure
 
@@ -234,16 +271,85 @@ The application integrates with Judge0 API to execute code in multiple languages
 ### Backend Deployment
 
 1. Build the application: `npm run build`
-2. Set production environment variables
+2. Set production environment variables:
+   ```env
+   DATABASE_URL=your_production_database_url
+   FIREBASE_PROJECT_ID=your_project_id
+   FIREBASE_PRIVATE_KEY=your_private_key
+   FIREBASE_CLIENT_EMAIL=your_client_email
+   JWT_SECRET=your_secure_jwt_secret
+   NODE_ENV=production
+   PORT=3001
+   ```
 3. Deploy to your preferred platform (Heroku, Railway, DigitalOcean, etc.)
+4. Ensure proper CORS configuration for your frontend domain
 
 ### Frontend Deployment
 
 1. Build the application: `npm run build`
 2. Deploy the `dist` folder to a static hosting service (Vercel, Netlify, etc.)
-3. Update API base URL for production
+3. Update API base URL for production in environment variables
+4. Configure proper redirects for SPA routing
 
-## 📝 License
+### Production Security Checklist
+
+- [ ] Environment variables are set correctly
+- [ ] Service account keys are not exposed
+- [ ] CORS is properly configured
+- [ ] HTTPS is enabled
+- [ ] Database connections are secure
+- [ ] Firebase security rules are properly configured
+- [ ] Rate limiting is implemented
+- [ ] Input validation is in place
+
+## � Troubleshooting
+
+### Common Issues
+
+**Database Connection Issues**
+
+- Verify your MySQL server is running
+- Check DATABASE_URL format and credentials
+- Ensure database exists and is accessible
+
+**Firebase Authentication Errors**
+
+- Verify Firebase project configuration
+- Check if service account key is valid and not expired
+- Ensure Firebase Auth is enabled for your project
+
+**Judge0 API Issues**
+
+- Verify your RapidAPI key is valid
+- Check rate limits and quota
+- Ensure proper CORS configuration
+
+**Build/Development Issues**
+
+- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+- Check Node.js version compatibility
+- Ensure all environment variables are set
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests if applicable
+4. Ensure code follows the project's style guidelines
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request with a clear description
+
+### Development Guidelines
+
+- Follow TypeScript best practices
+- Write meaningful commit messages
+- Add comments for complex logic
+- Update documentation when needed
+- Test your changes thoroughly
+- Never commit sensitive credentials
+
+## �📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 

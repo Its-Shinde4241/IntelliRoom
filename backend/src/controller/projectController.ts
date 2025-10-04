@@ -9,8 +9,14 @@ class ProjectController {
 
     public async getProjectFiles(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
             const { projectId } = req.params;
-            const result = await prisma.file.findMany({ where: { projectId } });
+            const result = await prisma.file.findMany({
+                where: {
+                    projectId,
+                    userId
+                }
+            });
             res.status(200).json(result);
         } catch (error) {
             ProjectController.handleError(res, error, "Failed to fetch project files");
@@ -19,7 +25,19 @@ class ProjectController {
 
     public async createProjectWithFiles(req: Request, res: Response): Promise<void> {
         try {
-            const { userId, projectName } = req.body;
+            const userId = req.user?.uid;
+            if (!userId) {
+                res.status(401).json({ error: "Unauthorized" });
+                return;
+            }
+            const { projectName } = req.body;
+            const existingProject = await prisma.project.findFirst({
+                where: { name: projectName, userId }
+            });
+            if (existingProject) {
+                res.status(409).json({ error: "Project with this name already exists" });
+                return;
+            }
             const project = await prisma.project.create({
                 data: {
                     name: projectName,
@@ -58,8 +76,13 @@ class ProjectController {
                     content: `console.log("Welcome to ${projectName}!");`,
                 },
             ];
+            if (project.id === undefined) {
+                console.error("Project ID is undefined");
+                return;
+            }
             await prisma.file.createMany({
                 data: defaultFiles.map((file) => ({
+                    userId: userId,
                     projectId: project.id,
                     ...file,
                 })),
@@ -69,12 +92,13 @@ class ProjectController {
             ProjectController.handleError(res, error, "Failed to create project");
         }
     }
+
     public async getUserProjects(req: Request, res: Response): Promise<void> {
         try {
-            const { userId } = req.params;
+            const userId = req.user?.uid;
             const projects = await prisma.project.findMany({
                 where: { userId: userId },
-                // include: { files: true }
+                include: { files: true }
             });
             res.status(200).json(projects);
         } catch (error) {
@@ -82,16 +106,52 @@ class ProjectController {
         }
     }
 
-    public async updateProjectWithFiles(req: Request, res: Response): Promise<void> {
+    public async updateFile(req: Request, res: Response): Promise<void> {
         try {
+            const userId = req.user?.uid;
+            const { projectId, fileId } = req.params;
+            const updates = req.body;
+
+            const project = await prisma.project.findFirst({
+                where: { id: projectId, userId }
+            });
+
+            if (!project) {
+                res.status(404).json({ error: "Project not found or access denied" });
+                return;
+            }
+
+            const updatedFile = await prisma.file.update({
+                where: {
+                    id: fileId,
+                    projectId: projectId,
+                    userId: userId
+                },
+                data: updates,
+            });
+
+            res.status(200).json(updatedFile);
+        } catch (error) {
+            ProjectController.handleError(res, error, "Failed to update file");
+        }
+    }
+
+    public async updateProjectName(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = req.user?.uid;
             const { projectId, projectName } = req.body;
+
             const project = await prisma.project.update({
-                where: { id: projectId },
+                where: {
+                    id: projectId,
+                    userId: userId
+                },
                 data: { name: projectName },
             });
+
             res.status(200).json(project);
         } catch (error) {
-            ProjectController.handleError(res, error, "Failed to update project");
+            ProjectController.handleError(res, error, "Failed to update project name");
         }
     }
 
@@ -107,6 +167,5 @@ class ProjectController {
         }
     }
 }
-
 
 export const projectController = new ProjectController();

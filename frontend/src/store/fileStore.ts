@@ -78,6 +78,8 @@ const useFileStore = create<FileState>((set, get) => ({
         loading: false
       });
       throw error;
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -124,7 +126,7 @@ const useFileStore = create<FileState>((set, get) => ({
   createFile: async (fileData: CreateFileData) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.post("/files", fileData);
+      const response = await api.post(`/files`, { ...fileData });
       const newFile = response.data as File;
 
       set((state) => ({
@@ -182,7 +184,6 @@ const useFileStore = create<FileState>((set, get) => ({
   },
 
   updateFileContent: async (fileId: string, content: string) => {
-    // Optimistic update for better UX
     const currentFile = get().activeFile;
     const originalFiles = get().files;
 

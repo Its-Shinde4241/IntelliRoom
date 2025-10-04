@@ -1,9 +1,12 @@
-import { useState } from "react";
+"use client"
+
+import { useState, useEffect, useCallback } from "react";
 import {
   ChevronRight,
   DoorClosedLocked,
   DoorOpen,
   FileIcon,
+  OctagonAlert,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -23,60 +26,79 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { getfileExtension } from "@/lib/helper";
 import { toast } from "sonner";
 import NewFilePopover from "./NewFilePopover";
 import UpdateRoomPopover from "./UpdateRoomPopover";
+import RenameFilePopover from "./RenameFilePopover";
 import type { CreateFileData } from "@/store/fileStore";
-
-interface Room {
-  id: string;
-  name: string;
-  password?: string;
-  userId: string;
-  files: { id: string; name: string; type: string }[];
-  createdAt?: string;
-  updatedAt?: string;
-}
+import useFileStore from "@/store/fileStore";
+import useRoomStore from "@/store/roomStore";
 
 interface NavRoomsProps {
-  rooms: Room[];
-  onRenameFile?: (roomId: string, fileId: string, newName: string) => void;
-  onDeleteFile?: (roomId: string, fileId: string) => void;
-  onRenameRoom: (
-    roomId: string,
-    updates: { name?: string | undefined; password?: string | undefined }
-  ) => Promise<void>;
-  onDeleteRoom?: (roomId: string) => void;
+  // rooms: Room[];
+  activeFileId: string;
+  loading?: boolean;
+  onRenameFile: (fileId: string, newName: string) => void;
+  onDeleteFile?: (fileId: string) => void;
   onAddFile: (fileData: CreateFileData) => Promise<string>;
 }
 
 export function NavRooms({
-  rooms,
+  activeFileId,
   onRenameFile,
   onDeleteFile,
-  onRenameRoom,
-  onDeleteRoom,
   onAddFile,
 }: NavRoomsProps) {
   const navigate = useNavigate();
   const { roomId: activeRoomId } = useParams<{ roomId: string }>();
-  const [openRooms, setOpenRooms] = useState<Set<string>>(
-    new Set(activeRoomId ? [activeRoomId] : [])
-  );
+
+  const { activeFile } = useFileStore();
+  const { activeRoom, rooms, updateRoom, deleteRoom, updateFileInRoom, removeFileFromRoom, addFileToRoom } = useRoomStore();
+
+  const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
   const [activeRoomForNewFile, setActiveRoomForNewFile] = useState<string>("");
+  const [roomToDelete, setRoomToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const handleFileClick = (roomId: string, fileId: string) => {
+  useEffect(() => {
+    const roomToOpen = activeFile?.roomId || activeRoom?.id || activeRoomId;
+
+    if (roomToOpen) {
+      setOpenRooms(prev => {
+        if (prev.has(roomToOpen)) {
+          return prev;
+        }
+        return new Set([roomToOpen]);
+      });
+    }
+  }, [activeFile?.roomId, activeRoom?.id, activeRoomId]);
+
+  const handleFileClick = useCallback((roomId: string, fileId: string) => {
     navigate(`/room/${roomId}/file/${fileId}`);
-  };
+  }, [navigate]);
 
-  const handleRoomToggle = (roomId: string, isOpen: boolean) => {
+  const handleRoomToggle = useCallback((roomId: string, isOpen: boolean) => {
     setOpenRooms((prev) => {
       const newSet = new Set(prev);
       if (isOpen) {
@@ -86,36 +108,48 @@ export function NavRooms({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const handleRoomClick = (roomId: string) => {
-    if (activeRoomId !== roomId) {
-      navigate(`/room/${roomId}`);
-      setOpenRooms((prev) => new Set(prev).add(roomId));
+  const handleRoomClick = useCallback((roomId: string) => {
+    navigate(`/room/${roomId}`);
+  }, [navigate]);
+
+  const handleRenameFile = useCallback(async (
+    fileId: string,
+    newName: string
+  ) => {
+    try {
+      await onRenameFile(fileId, newName);
+
+      // Update the file name in the room store
+      updateFileInRoom(fileId, { name: newName });
+    } catch (error) {
+      throw error;
     }
-  };
+  }, [onRenameFile, updateFileInRoom]);
 
-  const handleRenameFile = (roomId: string, fileId: string) => {
-    const file = rooms
-      .find((r) => r.id === roomId)
-      ?.files.find((f) => f.id === fileId);
-    if (!file) return;
+  const handleDeleteFile = useCallback((fileId: string) => {
+    try {
+      onDeleteFile?.(fileId);
 
-    const newName = prompt("Enter new file name:", file.name);
-    if (newName && newName !== file.name) {
-      onRenameFile?.(roomId, fileId, newName);
+      // Remove the file from the room store
+      removeFileFromRoom(fileId);
+
+      toast.success("File deleted successfully", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch {
+      toast.error("Failed to delete file", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
     }
-  };
-
-  const handleDeleteFile = (roomId: string, fileId: string) => {
-    if (confirm("Are you sure you want to delete this file?")) {
-      onDeleteFile?.(roomId, fileId);
-    }
-  };
+  }, [onDeleteFile, removeFileFromRoom]);
 
   const handleUpdateRoom = async (roomId: string, newName: string) => {
     try {
-      await onRenameRoom(roomId, { name: newName });
+      await updateRoom(roomId, { name: newName });
       toast.success(`Room renamed to "${newName}"`, {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -129,11 +163,20 @@ export function NavRooms({
     }
   };
 
-  const handleDeleteRoom = (roomId: string) => {
-    if (
-      confirm("Are you sure you want to delete this room and all its files?")
-    ) {
-      onDeleteRoom?.(roomId);
+  const handleDeleteRoom = async (roomId: string) => {
+    try {
+      await deleteRoom(roomId);
+      setRoomToDelete(null);
+      toast.success("Room deleted successfully", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+    } catch (error) {
+      toast.error("Failed to delete room", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
+      console.error("Error deleting room:", error);
     }
   };
 
@@ -144,7 +187,16 @@ export function NavRooms({
         type: fileType,
         roomId: activeRoomForNewFile,
       });
+
+      // Add the new file to the room store
+      addFileToRoom(activeRoomForNewFile, {
+        id: newFileId,
+        name: fileName,
+        type: fileType
+      });
+
       handleFileClick(activeRoomForNewFile, newFileId);
+
       toast.success(`File "${fileName}" created successfully`, {
         duration: 1000,
         style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -177,28 +229,21 @@ export function NavRooms({
               <SidebarMenuItem>
                 <ContextMenu>
                   <ContextMenuTrigger asChild>
-                    <div className="flex items-center flex-1 group/menu-button">
-                      <CollapsibleTrigger asChild className="flex-1">
-                        <SidebarMenuButton
-                          tooltip={room.name}
-                          onClick={() => handleRoomClick(room.id)}
-                          isActive={isActive}
-                          className="transition-all duration-300 ease-in-out"
-                        >
-                          {isOpen ? (
-                            <DoorOpen className="h-4 w-4 transition-all duration-300 ease-in-out" />
-                          ) : (
-                            <DoorClosedLocked className="h-4 w-4 transition-all duration-300 ease-in-out" />
-                          )}
-                          <span className="transition-all duration-300 ease-in-out">
-                            {room.name}
-                          </span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-300 group-data-[state=open]/collapsible:rotate-90 ease-in-out" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                    </div>
+                    <SidebarMenuButton
+                      tooltip={room.name}
+                      onClick={() => handleRoomClick(room.id)}
+                      isActive={isActive}
+                      className="cursor-pointer"
+                    >
+                      {isOpen ? (
+                        <DoorOpen className="h-4 w-4" />
+                      ) : (
+                        <DoorClosedLocked className="h-4 w-4" />
+                      )}
+                      <span>{room.name}</span>
+                    </SidebarMenuButton>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="">
+                  <ContextMenuContent>
                     <div onClick={() => setActiveRoomForNewFile(room.id)}>
                       <NewFilePopover onCreateFile={handleCreateFile} />
                     </div>
@@ -209,7 +254,9 @@ export function NavRooms({
                       }
                     />
                     <ContextMenuItem
-                      onClick={() => handleDeleteRoom(room.id)}
+                      onClick={() =>
+                        setRoomToDelete({ id: room.id, name: room.name })
+                      }
                       className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -217,58 +264,100 @@ export function NavRooms({
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
-                <CollapsibleContent
-                  className="transition-all duration-300 ease-in-out
-data-[state=open]:animate-in
-data-[state=open]:slide-in-from-top-2"
-                >
-                  <SidebarMenuSub className="animate-in slide-in-from-top-2 duration-300 ease-in-out">
-                    {room.files.map((file) => (
-                      <SidebarMenuSubItem
-                        key={file.id}
-                        className="animate-in fade-in-0 slide-in-from-left-2 duration-200 ease-in-out"
-                      >
-                        <ContextMenu>
-                          <ContextMenuTrigger asChild>
-                            <div className="flex items-center">
-                              <SidebarMenuSubButton
-                                onClick={() =>
-                                  handleFileClick(room.id, file.id)
-                                }
-                                className="flex-1 cursor-pointer"
-                              >
-                                <FileIcon className="h-4 w-4 transition-transform duration-200 ease-in-out" />
-                                <span className="transition-opacity duration-150 ease-in-out">
-                                  {file.name}.{getfileExtension(file.type)}
-                                </span>
-                              </SidebarMenuSubButton>
-                            </div>
-                          </ContextMenuTrigger>
-                          <ContextMenuContent>
-                            <ContextMenuItem
-                              onClick={() => handleRenameFile(room.id, file.id)}
-                            >
-                              <Pencil className="h-3.5 w-3.5 mr-2" />
-                              Rename File
-                            </ContextMenuItem>
-                            <ContextMenuItem
-                              onClick={() => handleDeleteFile(room.id, file.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" />
-                              Delete File
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
+
+                {room.files?.length ? (
+                  <>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuAction className="data-[state=open]:rotate-90">
+                        <ChevronRight />
+                        <span className="sr-only">Toggle</span>
+                      </SidebarMenuAction>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {room.files?.map((file) => (
+                          <SidebarMenuSubItem key={`${room.id}-${file.id}`}>
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <SidebarMenuSubButton
+                                  className="cursor-pointer"
+                                  onClick={() => handleFileClick(room.id, file.id)}
+                                  isActive={activeFileId === file.id || activeFile?.id === file.id}
+                                >
+                                  <FileIcon className="h-4 w-4" />
+                                  <span>
+                                    {file.name}.{getfileExtension(file.type)}
+                                  </span>
+                                </SidebarMenuSubButton>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent>
+                                <RenameFilePopover
+                                  fileName={file.name}
+                                  onRename={(newName) => handleRenameFile(file.id, newName)}
+                                  trigger={
+                                    <ContextMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                                      Rename File
+                                    </ContextMenuItem>
+                                  }
+                                />
+                                <ContextMenuItem
+                                  onClick={() => handleDeleteFile(file.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  Delete File
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </>
+                ) : null}
               </SidebarMenuItem>
             </Collapsible>
           );
         })}
       </SidebarMenu>
+
+      <AlertDialog
+        open={!!roomToDelete}
+        onOpenChange={(open) => !open && setRoomToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader className="items-center">
+            <AlertDialogTitle>
+              <div className="mb-2 mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <OctagonAlert className="h-7 w-7 text-destructive" />
+              </div>
+              Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] text-center">
+              This action cannot be undone. This will permanently delete the
+              room <b>{roomToDelete?.name}</b> and all its files from the
+              server.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2 sm:justify-center">
+            <AlertDialogCancel onClick={() => setRoomToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
+              onClick={() => roomToDelete && handleDeleteRoom(roomToDelete.id)}
+            >
+              Delete Room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarGroup>
   );
 }
