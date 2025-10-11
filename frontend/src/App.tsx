@@ -91,6 +91,14 @@ export default function App() {
             }
           />
           <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/account"
             element={
               <ProtectedRoute>

@@ -27,6 +27,7 @@ import useRoomStore from "@/store/roomStore"
 import useFileStore from "@/store/fileStore"
 import { useProjectStore } from "@/store/projectStore"
 import { ThemeToggle } from "./ThemeToggler"
+import { Separator } from "./ui/separator"
 
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -95,6 +96,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+      <Separator />
 
       <SidebarContent style={{ scrollbarWidth: "none" }}>
         <NavRooms
@@ -113,9 +115,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           onRunProject={runProject}
         />
       </SidebarContent>
-
+      <Separator />
       <SidebarFooter className="flex flex-col align-middle justify-center">
-        <SidebarContent className={`flex items-center overflow-hidden ${open ? 'justify-center mb-2' : 'justify-center'}`}>
+        <SidebarContent className={`flex items-center overflow-hidden ${open ? 'justify-center' : 'justify-center'}`}>
           <ThemeToggle />
         </SidebarContent>
         <NavUser user={mappedUser} />

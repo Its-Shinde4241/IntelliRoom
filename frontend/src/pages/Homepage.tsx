@@ -87,7 +87,7 @@ function Homepage() {
               Welcome to IntelliRoom
             </h1>
             <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              Your intelligent IDE. Create projects, manage files, and build amazing applications.
+              Your intelligent IDE. Create projects, manage files, and build amazing websites.
             </p>
           </div>
 
@@ -127,7 +127,7 @@ function Homepage() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="text-sm mb-3">
-                        Create a collaborative workspace for discussions.
+                        Create a workspace for practice and teamwork.
                       </CardDescription>
                       <NewRoomPopover onCreateRoom={handleCreateRoom} />
                     </CardContent>
