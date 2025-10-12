@@ -86,7 +86,7 @@ interface TooltipButtonProps {
   children?: React.ReactNode;
 }
 
-const TooltipButton = ({
+export const TooltipButton = ({
   onClick,
   icon,
   tooltip,
