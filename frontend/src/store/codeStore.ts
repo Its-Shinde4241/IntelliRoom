@@ -60,10 +60,10 @@ const useCodeStore = create<CodeStore>((set) => ({
                     })();
 
                     console.log = originalLog; // restore
-                    toast.success("Code executed successfully!", {
-                        duration: 1000,
-                        style: { width: "auto", minWidth: "fit-content", padding: 6 },
-                    });
+                    // toast.success("Code executed successfully!", {
+                    //     duration: 1000,
+                    //     style: { width: "auto", minWidth: "fit-content", padding: 10 },
+                    // });
                 } catch (e: any) {
                     const errorMessage = e.message || String(e);
                     set({ output: null, error: errorMessage });

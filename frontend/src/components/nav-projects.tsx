@@ -153,6 +153,12 @@ export default function NavProjects({
     return openProjects.has(projectId) ? FolderOpen : Folder;
   };
 
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/project/${projectId}`);
+    // if (open) {
+    //   setOpen(false);
+    // }
+  };
   return (
     <div className="py-2">
       <SidebarGroup>
@@ -180,6 +186,7 @@ export default function NavProjects({
                           <SidebarMenuButton
                             tooltip={project.name}
                             className={`${isActiveProject ? 'bg-accent text-accent-foreground font-medium' : ''}`}
+                            onClick={() => handleProjectClick(project.id)}
                           >
                             <ProjectIcon className="h-4 w-4" />
                             <span>{project.name}</span>

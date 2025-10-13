@@ -54,7 +54,6 @@ import useFileStore from "@/store/fileStore";
 import useRoomStore from "@/store/roomStore";
 
 interface NavRoomsProps {
-  // rooms: Room[];
   activeFileId: string;
   loading?: boolean;
   onRenameFile: (fileId: string, newName: string) => void;

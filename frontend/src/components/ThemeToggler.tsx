@@ -66,7 +66,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                             <Sun className="h-4 w-4" />
                         </Toggle>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">
+                    <TooltipContent side="top">
                         <p>Light Theme</p>
                     </TooltipContent>
                 </Tooltip>
@@ -87,7 +87,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                             <Moon className="h-4 w-4" />
                         </Toggle>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">
+                    <TooltipContent side="top">
                         <p>Dark Theme</p>
                     </TooltipContent>
                 </Tooltip>
@@ -108,7 +108,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                             <Code className="h-4 w-4" />
                         </Toggle>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">
+                    <TooltipContent side="top">
                         <p>Liner Theme</p>
                     </TooltipContent>
                 </Tooltip>
@@ -129,7 +129,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                             <Palette className="h-4 w-4" />
                         </Toggle>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">
+                    <TooltipContent side="top">
                         <p>Valo Theme</p>
                     </TooltipContent>
                 </Tooltip>
@@ -150,7 +150,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                             <Monitor className="h-4 w-4" />
                         </Toggle>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">
+                    <TooltipContent side="top">
                         <p>System Theme</p>
                     </TooltipContent>
                 </Tooltip>

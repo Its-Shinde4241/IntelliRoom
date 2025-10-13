@@ -50,9 +50,9 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ loading: true, error: null });
       const response = await api.get<Room[]>(`/rooms/user/${userId}`);
       set({ rooms: response.data });
-      toast.success("Rooms loaded successfully");
+      // toast.success("Rooms loaded successfully", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
     } catch (error) {
-      toast.error("Failed to fetch rooms");
+      toast.error("Failed to fetch rooms", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
       set({ error: error instanceof Error ? error.message : 'Failed to fetch rooms' });
     } finally {
       set({ loading: false });
