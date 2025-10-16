@@ -7,6 +7,7 @@ import { useProjectStore } from "@/store/projectStore";
 import { Separator } from "@radix-ui/react-separator";
 import Header, { languages } from "../components/Header-comp";
 import { useTheme } from "@/components/theme-provider";
+// import AgentPopover from "@/components/AgentPopover";
 
 export default function ProjectFilesPage() {
     const params = useParams();
@@ -174,16 +175,48 @@ export default function ProjectFilesPage() {
         setEditorValue(value || "");
     }, []);
 
-    // Improved save function with debouncing and proper content handling
+    // Handler for AI-generated files
+    // const handleFilesGenerated = useCallback((files: { html: string; css: string; js: string }) => {
+    //     if (activeFile) {
+    //         let newContent = "";
+    //         switch (activeFile.type) {
+    //             case "html":
+    //                 newContent = files.html;
+    //                 break;
+    //             case "css":
+    //                 newContent = files.css;
+    //                 break;
+    //             case "js":
+    //                 newContent = files.js;
+    //                 break;
+    //             default:
+    //                 toast.error("AI generation not supported for this file type");
+    //                 return;
+    //         }
+
+    //         setEditorValue(newContent);
+    //         if (editorRef.current) {
+    //             editorRef.current.setValue(newContent);
+    //         }
+
+    //         toast.success(`AI-generated ${activeFile.type.toUpperCase()} code loaded`, {
+    //             duration: 3000,
+    //             style: {
+    //                 width: "auto",
+    //                 minWidth: "fit-content",
+    //                 padding: 10
+    //             }
+    //         });
+    //     }
+    // }, [activeFile]);
+
     const handleSave = useCallback(async () => {
         if (!activeFile || !projectId || isSaving) return;
 
-        // Clear any pending save
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
 
-        // Debounce saves to prevent double calls
         saveTimeoutRef.current = setTimeout(async () => {
             setIsSaving(true);
 
@@ -352,6 +385,9 @@ export default function ProjectFilesPage() {
                     )}
                 </div>
             </div>
+
+            {/* AI Agent Popover */}
+            {/* <AgentPopover onFilesGenerated={handleFilesGenerated} /> */}
         </div>
     );
 }
