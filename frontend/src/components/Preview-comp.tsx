@@ -12,6 +12,8 @@ import {
     X,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { useEffect } from "react";
 
 interface PreviewComponentProps {
     isOpen: boolean;
@@ -32,6 +34,38 @@ export default function PreviewComponent({
     onRefresh,
     onOpenInNewWindow,
 }: PreviewComponentProps) {
+
+    // Close tooltips when cursor moves over iframe area
+    useEffect(() => {
+        const handleCloseTooltips = () => {
+            // Force close all tooltips by dispatching an escape key event
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        };
+
+        // Target both iframe and preview content area
+        const iframes = document.querySelectorAll('iframe');
+        const previewAreas = document.querySelectorAll('.preview-content-area');
+
+        // Add listeners to iframes
+        iframes.forEach(iframe => {
+            iframe.addEventListener('mouseenter', handleCloseTooltips);
+        });
+
+        // Add listeners to preview content areas
+        previewAreas.forEach(area => {
+            area.addEventListener('mouseenter', handleCloseTooltips);
+        });
+
+        return () => {
+            iframes.forEach(iframe => {
+                iframe.removeEventListener('mouseenter', handleCloseTooltips);
+            });
+            previewAreas.forEach(area => {
+                area.removeEventListener('mouseenter', handleCloseTooltips);
+            });
+        };
+    }, [previewContent]);
+
     if (!isOpen) return null;
 
     return (
@@ -79,36 +113,39 @@ export default function PreviewComponent({
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={onRefresh}
-                                                    className="h-8 px-2 text-xs gap-1"
-                                                >
-                                                    <RefreshCw className="h-3 w-3" />
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Refresh Preview</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    onClick={onOpenInNewWindow}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 px-2 text-xs gap-1"
-                                                >
-                                                    <ExternalLink className="h-3 w-3" />
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Open in New Window</p>
-                                            </TooltipContent>
-                                        </Tooltip>
+                                        <TooltipProvider delayDuration={200} skipDelayDuration={50}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={onRefresh}
+                                                        className="h-8 px-2 text-xs gap-1"
+                                                    >
+                                                        <RefreshCw className="h-3 w-3" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" sideOffset={5}>
+                                                    <p>Refresh Preview</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        onClick={onOpenInNewWindow}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs gap-1"
+                                                    >
+                                                        <ExternalLink className="h-3 w-3" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" sideOffset={5}>
+                                                    <p>Open in New Window</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -116,14 +153,14 @@ export default function PreviewComponent({
                                             className="h-8 w-8 p-0 transition-colors duration-200"
                                             disabled={isTransitioning}
                                         >
-                                            <X />
+                                            <X className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Preview Content */}
-                            <div className="flex-1 p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-all duration-300">
+                            <div className="flex-1 p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-all duration-300 preview-content-area">
                                 <div className="w-full h-full bg-white rounded-lg shadow-xl overflow-hidden border transition-all duration-300">
                                     {isTransitioning ? (
                                         <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800">

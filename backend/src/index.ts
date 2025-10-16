@@ -8,6 +8,7 @@ import authenticate from "./middleware/auth";
 import roomRouter from "./routes/roomRoutes";
 import projectRouter from "./routes/projectRoutes";
 import fileRouter from "./routes/fileRoutes";
+import AgentRouter from "./routes/agentRouter";
 
 const app = express();
 const server = http.createServer(app);
@@ -44,6 +45,7 @@ app.use("/api/auth", Authrouter);
 app.use("/api/rooms", authenticate, roomRouter);
 app.use("/api/files", authenticate, fileRouter);
 app.use("/api/projects", authenticate, projectRouter);
+app.use("/api/agent", authenticate, AgentRouter);
 
 const PORT = 3001;
 server.listen(PORT, () => {

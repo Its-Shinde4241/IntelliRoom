@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Editor from "@monaco-editor/react";
+import AgentPopover from "@/components/AgentPopover";
 
 // Import stores
 import { useAuthStore } from "@/store/authStore";
@@ -244,6 +245,23 @@ function animateElements() {
     setHasUnsavedChanges(true);
   };
 
+  // Handler for AI-generated files
+  const handleFilesGenerated = useCallback((files: { html: string; css: string; js: string }) => {
+    setHtmlContent(files.html);
+    setCssContent(files.css);
+    setJsContent(files.js);
+    setHasUnsavedChanges(true);
+
+    toast.success("AI-generated code loaded into editors", {
+      duration: 3000,
+      style: {
+        width: "auto",
+        minWidth: "fit-content",
+        padding: 10
+      }
+    });
+  }, []);
+
   // Save functionality
   const saveAllFiles = async () => {
     if (!project || isSaving) return;
@@ -303,16 +321,34 @@ function animateElements() {
 
     let content = htmlContent || getDefaultHtml();
 
-    // Inject CSS
+    // Remove external CSS link references and inject inline CSS
     if (cssContent) {
+      // Remove external CSS link references
+      content = content.replace(
+        /<link[^>]*rel=["']stylesheet["'][^>]*href=["']styles\.css["'][^>]*>/gi,
+        ''
+      );
+      content = content.replace(
+        /<link[^>]*href=["']styles\.css["'][^>]*rel=["']stylesheet["'][^>]*>/gi,
+        ''
+      );
+
+      // Inject CSS into HTML
       content = content.replace(
         '</head>',
         `<style>\n${cssContent}\n</style>\n</head>`
       );
     }
 
-    // Inject JS
+    // Remove external JS script references and inject inline JS
     if (jsContent) {
+      // Remove external JS script references
+      content = content.replace(
+        /<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi,
+        ''
+      );
+
+      // Inject JS into HTML
       content = content.replace(
         '</body>',
         `<script>\n${jsContent}\n</script>\n</body>`
@@ -388,52 +424,53 @@ function animateElements() {
   }
 
   return (
-    <TooltipProvider>
 
-      <div className="h-screen flex flex-col overflow-hidden bg-background">
-        {/* Project Header */}
-        <div className="border-b bg-card/50 p-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger className="p-0" />
-              <FolderOpen className="h-6 w-6 text-blue-600" />
-              <h1 className="text-2xl font-bold">{project.name}</h1>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                Project
-              </Badge>
-              {project.createdAt && (
-                <span className="flex items-center gap-1 text-sm text-muted-foreground ml-4">
-                  <Calendar className="h-4 w-4" />
-                  Created {formatDate(project.createdAt)}
-                </span>
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* Project Header */}
+      <div className="border-b bg-card/50 p-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger className="p-0" />
+            <FolderOpen className="h-6 w-6 text-blue-600" />
+            <h1 className="text-2xl font-bold">{project.name}</h1>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              Project
+            </Badge>
+            {project.createdAt && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground ml-4">
+                <Calendar className="h-4 w-4" />
+                Created {formatDate(project.createdAt)}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={hasUnsavedChanges ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+              onClick={saveAllFiles}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
               )}
-            </div>
+              {hasUnsavedChanges ? "(Ctrl+S)" : ""}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={openPreview}
+              disabled={isPreviewTransitioning}
+            >
+              <Eye className="h-4 w-4" />
+              {isPreviewTransitioning ? "Loading..." : "Preview"}
+            </Button>
+            <TooltipProvider>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant={hasUnsavedChanges ? "default" : "outline"}
-                size="sm"
-                className="gap-2"
-                onClick={saveAllFiles}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {hasUnsavedChanges ? "(Ctrl+S)" : ""}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={openPreview}
-                disabled={isPreviewTransitioning}
-              >
-                <Eye className="h-4 w-4" />
-                {isPreviewTransitioning ? "Loading..." : "Preview"}
-              </Button>
               <TooltipButton
                 onClick={toggleSidebar}
                 icon={
@@ -446,162 +483,165 @@ function animateElements() {
                 tooltip={state === "expanded" ? "Expand window" : "Minimize window"}
                 className="text-muted-foreground hover:text-foreground hidden md:block"
               />
-            </div>
+            </TooltipProvider>
           </div>
         </div>
-
-        {/* Main Content with Monaco Editors */}
-        <div className="flex-1 overflow-hidden">
-          <ResizablePanelGroup direction="horizontal">
-            {/* HTML Editor */}
-            <ResizablePanel defaultSize={33} minSize={25}>
-
-              <div className="h-full flex flex-col">
-                <div className="border-b p-3 bg-orange-50 dark:bg-orange-950/20">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-orange-600" />
-                    <span className="font-medium text-sm">HTML</span>
-                    {htmlFile ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                        {htmlFile.name}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                        No file
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <Editor
-                    height="100%"
-                    language="html"
-                    value={htmlContent}
-                    onChange={handleHtmlChange}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: false,
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      fontSize: 14,
-                      lineNumbers: "on",
-                      wordWrap: "on",
-                      automaticLayout: true,
-                      tabSize: 2,
-                      insertSpaces: true,
-                      formatOnPaste: true,
-                      formatOnType: true
-                    }}
-                  />
-                </div>
-              </div>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            {/* CSS Editor */}
-            <ResizablePanel defaultSize={33} minSize={25}>
-              <div className="h-full flex flex-col">
-                <div className="border-b p-3 bg-blue-50 dark:bg-blue-950/20">
-                  <div className="flex items-center gap-2">
-                    <Palette className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium text-sm">CSS</span>
-                    {cssFile ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                        {cssFile.name}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                        No file
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <Editor
-                    height="100%"
-                    language="css"
-                    value={cssContent}
-                    onChange={handleCssChange}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: false,
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      fontSize: 14,
-                      lineNumbers: "on",
-                      wordWrap: "on",
-                      automaticLayout: true,
-                      tabSize: 2,
-                      insertSpaces: true,
-                      formatOnPaste: true,
-                      formatOnType: true
-                    }}
-                  />
-                </div>
-              </div>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            {/* JavaScript Editor */}
-            <ResizablePanel defaultSize={34} minSize={25}>
-              <div className="h-full flex flex-col">
-                <div className="border-b p-3 bg-yellow-50 dark:bg-yellow-950/20">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-yellow-600" />
-                    <span className="font-medium text-sm">JavaScript</span>
-                    {jsFile ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                        {jsFile.name}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                        No file
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <Editor
-                    height="100%"
-                    language="javascript"
-                    value={jsContent}
-                    onChange={handleJsChange}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: false,
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      fontSize: 14,
-                      lineNumbers: "on",
-                      wordWrap: "on",
-                      automaticLayout: true,
-                      tabSize: 2,
-                      insertSpaces: true,
-                      formatOnPaste: true,
-                      formatOnType: true
-                    }}
-                  />
-                </div>
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </div>
-
-        {/* Resizable Preview Overlay using Resizable Panels */}
-        {showPreview && (
-          <PreviewComponent
-            isOpen={showPreview}
-            onClose={closePreview}
-            previewContent={previewContent}
-            projectName={project?.name}
-            isTransitioning={isPreviewTransitioning}
-            onRefresh={handleRefreshPreview}
-            onOpenInNewWindow={handleRunInNewWindow}
-          />
-        )}
       </div>
-    </TooltipProvider>
+
+      {/* Main Content with Monaco Editors */}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal">
+          {/* HTML Editor */}
+          <ResizablePanel defaultSize={33} minSize={25}>
+
+            <div className="h-full flex flex-col">
+              <div className="border-b p-3 bg-orange-50 dark:bg-orange-950/20">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-orange-600" />
+                  <span className="font-medium text-sm">HTML</span>
+                  {htmlFile ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                      {htmlFile.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                      No file
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1">
+                <Editor
+                  height="100%"
+                  language="html"
+                  value={htmlContent}
+                  onChange={handleHtmlChange}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: false,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    tabSize: 2,
+                    insertSpaces: true,
+                    formatOnPaste: true,
+                    formatOnType: true
+                  }}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* CSS Editor */}
+          <ResizablePanel defaultSize={33} minSize={25}>
+            <div className="h-full flex flex-col">
+              <div className="border-b p-3 bg-blue-50 dark:bg-blue-950/20">
+                <div className="flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-sm">CSS</span>
+                  {cssFile ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                      {cssFile.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                      No file
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1">
+                <Editor
+                  height="100%"
+                  language="css"
+                  value={cssContent}
+                  onChange={handleCssChange}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: false,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    tabSize: 2,
+                    insertSpaces: true,
+                    formatOnPaste: true,
+                    formatOnType: true
+                  }}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          {/* JavaScript Editor */}
+          <ResizablePanel defaultSize={34} minSize={25}>
+            <div className="h-full flex flex-col">
+              <div className="border-b p-3 bg-yellow-50 dark:bg-yellow-950/20">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-600" />
+                  <span className="font-medium text-sm">JavaScript</span>
+                  {jsFile ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                      {jsFile.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                      No file
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1">
+                <Editor
+                  height="100%"
+                  language="javascript"
+                  value={jsContent}
+                  onChange={handleJsChange}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: false,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    tabSize: 2,
+                    insertSpaces: true,
+                    formatOnPaste: true,
+                    formatOnType: true
+                  }}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Resizable Preview Overlay using Resizable Panels */}
+      {showPreview && (
+        <PreviewComponent
+          isOpen={showPreview}
+          onClose={closePreview}
+          previewContent={previewContent}
+          projectName={project?.name}
+          isTransitioning={isPreviewTransitioning}
+          onRefresh={handleRefreshPreview}
+          onOpenInNewWindow={handleRunInNewWindow}
+        />
+      )}
+
+      {/* AI Agent Popover */}
+      <AgentPopover onFilesGenerated={handleFilesGenerated} currentHtml={htmlContent} currentCss={cssContent} currentJs={jsContent} />
+    </div>
   );
 }

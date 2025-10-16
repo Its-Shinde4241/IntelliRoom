@@ -235,59 +235,42 @@ export const useProjectStore = create<ProjectState>()(
 <h1>No HTML file found</h1><p>Create an HTML file to see the preview.</p>
 </div></body></html>`;
 
-            // Inject CSS and JS into HTML
+            // Replace external CSS link with inline styles
             if (cssFile?.content) {
+                // Remove external CSS link references
+                htmlContent = htmlContent.replace(
+                    /<link[^>]*rel=["']stylesheet["'][^>]*href=["']styles\.css["'][^>]*>/gi,
+                    ''
+                );
+                htmlContent = htmlContent.replace(
+                    /<link[^>]*href=["']styles\.css["'][^>]*rel=["']stylesheet["'][^>]*>/gi,
+                    ''
+                );
+
+                // Inject CSS into HTML
                 htmlContent = htmlContent.replace(
                     '</head>',
                     `<style>\n${cssFile.content}\n</style>\n</head>`
                 );
             }
+
+            // Replace external JS script with inline script
             if (jsFile?.content) {
+                // Remove external JS script references
+                htmlContent = htmlContent.replace(
+                    /<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi,
+                    ''
+                );
+
+                // Inject JS into HTML
                 htmlContent = htmlContent.replace(
                     '</body>',
                     `<script>\n${jsFile.content}\n</script>\n</body>`
                 );
             }
 
-            // Create a sandboxed iframe wrapper
-            const iframeWrapper = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${project.name} - Preview</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    iframe {
-      border: none;
-      width: 100%;
-      height: 100%;
-      background: white;
-    }
-  </style>
-</head>
-<body>
-  <iframe 
-    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-    srcdoc="${htmlContent.replace(/"/g, '&quot;').replace(/\n/g, ' ')}">
-  </iframe>
-</body>
-</html>
-`;
-
-            // Create blob for iframe wrapper
-            const blob = new Blob([iframeWrapper], { type: 'text/html' });
+            // Create blob directly from the processed HTML content
+            const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
 
             // Open in new window
