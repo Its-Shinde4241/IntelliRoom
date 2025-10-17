@@ -165,8 +165,11 @@ export default function AgentPopover({ onFilesGenerated, currentHtml, currentCss
                                                 className="w-full max-h-[200px] bg-transparent border-0 outline-none resize-none text-sm placeholder:text-muted-foreground pr-16 leading-6 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
                                                 disabled={isGenerating}
                                                 rows={1}
+                                                // style={{
+                                                //     overflow: 'hidden'
+                                                // }}
                                                 style={{
-                                                    overflow: 'hidden'
+                                                    scrollbarWidth: "thin"
                                                 }}
                                             />
                                             <div className="absolute bottom-2 right-2 flex items-center gap-2">
