@@ -10,8 +10,8 @@ A collaborative real-time code editor with integrated compilation and execution 
 ![Homepage](./assets/demo/homepage.png)
 *Clean and modern landing page with authentication options*
 
-### 👥 Collaborative Rooms
-![Collaborative Room](./assets/demo/room-collaboration.png)
+### 👥 Rooms
+![Room](./assets/demo/room-collaboration.png)
 *Real-time collaborative coding with multiple users*
 
 ### 💻 Code Editor Interface
