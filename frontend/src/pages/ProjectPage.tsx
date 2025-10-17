@@ -251,15 +251,6 @@ function animateElements() {
     setCssContent(files.css);
     setJsContent(files.js);
     setHasUnsavedChanges(true);
-
-    toast.success("AI-generated code loaded into editors", {
-      duration: 3000,
-      style: {
-        width: "auto",
-        minWidth: "fit-content",
-        padding: 10
-      }
-    });
   }, []);
 
   // Save functionality

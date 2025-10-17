@@ -2,6 +2,38 @@
 
 A collaborative real-time code editor with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
 
+## 📸 Demo
+
+<div align="center">
+
+### 🏠 Homepage
+![Homepage](./assets/demo/homepage.png)
+*Clean and modern landing page with authentication options*
+
+### 👥 Collaborative Rooms
+![Collaborative Room](./assets/demo/room-collaboration.png)
+*Real-time collaborative coding with multiple users*
+
+### 💻 Code Editor Interface
+![Code Editor](./assets/demo/code-editor.png)
+*Monaco editor with syntax highlighting and integrated terminal*
+
+### 📁 Project Management
+![Project Files](./assets/demo/project-management.png)
+*Organize and manage your code files and projects*
+
+### 🔧 Live Code Execution
+![Code Execution](./assets/demo/code-execution.png)
+*Execute code in multiple languages with real-time output*
+
+### 📱 Responsive Design
+![Responsive Design](./assets/demo/responsive-design.png)
+*Fully responsive interface that works on all devices*
+
+</div>
+
+---
+
 ## ✨ Features
 
 - **Real-time Collaborative Editing** - Multiple users can code together in shared rooms
