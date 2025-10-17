@@ -1,3 +1,5 @@
+<img width="1916" height="1079" alt="Screenshot 2025-10-17 224129" src="https://github.com/user-attachments/assets/37cf5bcc-02d2-4899-8acf-5db825a2dcc0" />
+
 # IntelliRoom 🚀
 
 A collaborative real-time code editor with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
@@ -7,27 +9,41 @@ A collaborative real-time code editor with integrated compilation and execution 
 <div align="center">
 
 ### 🏠 Homepage
-![Homepage](./assets/demo/homepage.png)
+<img width="1919" height="1079" alt="Screenshot 2025-10-17 224152" src="https://github.com/user-attachments/assets/31bf4859-e253-4a63-8712-1d075eaf0602" />
+
 *Clean and modern landing page with authentication options*
 
 ### 👥 Rooms
-![Room](./assets/demo/room-collaboration.png)
-*Real-time collaborative coding with multiple users*
+
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/2110097b-a8ec-4a87-9798-624f906e3658" />
+
+
+*Multiple Rooms as per topics or any other criteria*
 
 ### 💻 Code Editor Interface
-![Code Editor](./assets/demo/code-editor.png)
+<img width="1919" height="1079" alt="code editor" src="https://github.com/user-attachments/assets/95c031ae-1479-4c5f-bc69-0ce59caa6627" />
+
+
+
 *Monaco editor with syntax highlighting and integrated terminal*
 
 ### 📁 Project Management
-![Project Files](./assets/demo/project-management.png)
+
+<img width="1919" height="1079" alt="Project Management" src="https://github.com/user-attachments/assets/7a97d974-06d1-48c5-9780-854d4612554e" />
+
 *Organize and manage your code files and projects*
 
 ### 🔧 Live Code Execution
-![Code Execution](./assets/demo/code-execution.png)
+
+<img width="1919" height="1079" alt="live_preview" src="https://github.com/user-attachments/assets/8bc2a384-1bef-4461-bc8c-0618394a89c7" />
+
+
 *Execute code in multiple languages with real-time output*
 
 ### 📱 Responsive Design
-![Responsive Design](./assets/demo/responsive-design.png)
+
+<img width="1919" height="1079" alt="project_file" src="https://github.com/user-attachments/assets/72bbe7b6-dbe5-40ab-bbb3-d72f08af1242" />
+
 *Fully responsive interface that works on all devices*
 
 </div>
