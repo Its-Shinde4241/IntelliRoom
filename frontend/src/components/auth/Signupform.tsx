@@ -344,12 +344,24 @@ export default function Signupform() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8 bg-gradient-to-bl from-background to-muted">
         <div className="w-full max-w-md">
           {/* Mobile Logo/Brand - only visible on mobile */}
-          <div className="text-center mb-8 lg:hidden">
+          <div className="text-center mb-2 lg:hidden">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-border">
                 <Code2 className="w-8 h-8 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground">Intelliroom</h1>
+
+              <TextPressure
+                text="INTELLIROOM"
+                flex={true}
+                alpha={false}
+                stroke={false}
+                width={true}
+                weight={true}
+                italic={false}
+                textColor="currentColor"
+                minFontSize={16}
+                className="text-foreground filter drop-shadow-lg"
+              />
             </div>
             <p className="text-muted-foreground text-lg">
               Join the collaborative coding revolution
@@ -366,7 +378,7 @@ export default function Signupform() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-foreground">

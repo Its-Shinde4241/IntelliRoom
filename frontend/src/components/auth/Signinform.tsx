@@ -315,7 +315,18 @@ export default function Signinform() {
               <div className="p-3 bg-primary/10 backdrop-blur-sm rounded-xl border border-border">
                 <Code2 className="w-8 h-8 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground">Intelliroom</h1>
+              <TextPressure
+                text="INTELLIROOM"
+                flex={true}
+                alpha={false}
+                stroke={false}
+                width={true}
+                weight={true}
+                italic={false}
+                textColor="currentColor"
+                minFontSize={16}
+                className="text-foreground filter drop-shadow-lg"
+              />
             </div>
             <p className="text-muted-foreground text-lg">
               Sign in to your collaborative IDE
