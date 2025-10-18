@@ -15,7 +15,7 @@ const server = http.createServer(app);
 
 app.use(express.json());
 app.use(cors({
-    origin: "https://intelli-room.vercel.app", credentials: true
+    origin: ["https://intelli-room.vercel.app", "http://localhost:5173"], credentials: true
 }))
 
 app.get("/api", (req, res) => {
