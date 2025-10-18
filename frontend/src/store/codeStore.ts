@@ -60,10 +60,7 @@ const useCodeStore = create<CodeStore>((set) => ({
                     })();
 
                     console.log = originalLog; // restore
-                    // toast.success("Code executed successfully!", {
-                    //     duration: 1000,
-                    //     style: { width: "auto", minWidth: "fit-content", padding: 10 },
-                    // });
+
                 } catch (e: any) {
                     const errorMessage = e.message || String(e);
                     set({ output: null, error: errorMessage });
@@ -185,7 +182,6 @@ const useCodeStore = create<CodeStore>((set) => ({
 
         } catch (saveError: any) {
             console.error("Error saving code:", saveError);
-            // toast.error("Failed to save code");
         }
     },
 }));
