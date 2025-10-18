@@ -1,0 +1,482 @@
+/* Car Loader Styles */
+.car-loader-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: hsl(var(--background));
+}
+
+.car-loader-content {
+    position: relative;
+    width: 100%;
+    max-width: 28rem;
+    margin: 0 auto;
+}
+
+/* Road reference points for AnimatedBeam */
+.road-point {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.road-start {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.road-end {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.center-start {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.center-end {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Car container */
+.car-container {
+    position: relative;
+    z-index: 10;
+    top: 0px;
+    display: flex;
+    justify-content: center;
+    animation: car-move-realistic 6s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+/* Smoke particles */
+.smoke-container {
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+}
+
+.smoke-particle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: rgba(156, 163, 175, 0.8);
+    border-radius: 50%;
+    opacity: 0.8;
+}
+
+.smoke-0 {
+    animation: smoke-0 1.5s infinite;
+}
+
+.smoke-1 {
+    animation: smoke-1 1.8s infinite;
+}
+
+.smoke-2 {
+    animation: smoke-2 2s infinite;
+}
+
+/* Car SVG */
+.car-svg-container {
+    position: relative;
+    transform: scale(0.75);
+}
+
+@media (min-width: 640px) {
+    .car-svg-container {
+        transform: scale(1);
+    }
+}
+
+.car-svg {
+    width: 96px;
+    height: 96px;
+    color: hsl(var(--primary));
+    filter: drop-shadow(0 10px 15px rgb(0 0 0 / 0.1));
+    transform: scaleX(-1);
+}
+
+.car-path {
+    fill: currentColor;
+}
+
+/* Wheels */
+.wheel {
+    position: absolute;
+    bottom: 8px;
+    width: 8px;
+    height: 8px;
+    background: hsl(var(--foreground));
+    border-radius: 50%;
+    animation: wheel-spin-realistic 0.3s linear infinite;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.wheel-front {
+    left: 1.5rem;
+}
+
+.wheel-rear {
+    right: 1.5rem;
+}
+
+/* Loading text floating attached to car */
+.loading-text-attached {
+    position: absolute;
+    left: 100px;
+    top: 50%;
+    transform: translateY(-80%);
+    z-index: 4;
+    animation: text-float-drag 2s ease-in-out infinite;
+}
+
+/* Thread connecting car to text */
+.thread {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    width: 10px;
+    height: 1px;
+    background: black;
+    transform-origin: right center;
+    transform: translateY(-50%) rotate(-15deg);
+    animation: thread-sway 2s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+.loading-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.loading-label {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+}
+
+.loading-dots {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    background: hsl(var(--color-black));
+    border-radius: 50%;
+    animation: bounce 1s infinite;
+}
+
+.dot-1 {
+    animation-delay: 0ms;
+}
+
+.dot-2 {
+    animation-delay: 150ms;
+}
+
+.dot-3 {
+    animation-delay: 300ms;
+}
+
+/* Animations */
+@keyframes smoke-0 {
+    0% {
+        transform: translateX(0) scale(0.8);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateX(-50px) scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes smoke-1 {
+    0% {
+        transform: translateX(0) scale(0.6);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateX(-45px) scale(1.8);
+        opacity: 0;
+    }
+}
+
+@keyframes smoke-2 {
+    0% {
+        transform: translateX(0) scale(0.9);
+        opacity: 0.85;
+    }
+
+    100% {
+        transform: translateX(-55px) scale(2.2);
+        opacity: 0;
+    }
+}
+
+@keyframes car-move {
+
+    0%,
+    100% {
+        transform: scaleX(-1) translateY(0px);
+    }
+
+    50% {
+        transform: scaleX(-1) translateY(-2px);
+    }
+}
+
+@keyframes bounce-slow {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-1px);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+/* Realistic car movement with physics */
+@keyframes car-move-realistic {
+
+    /* Starting phase - car appears and accelerates */
+    0% {
+        transform: translateX(-40%) translateY(0px);
+        opacity: 0;
+    }
+
+    5% {
+        transform: translateX(-38%) translateY(0px);
+        opacity: 0.3;
+    }
+
+    10% {
+        transform: translateX(-35%) translateY(-0.5px);
+        opacity: 1;
+    }
+
+    /* Acceleration phase */
+    20% {
+        transform: translateX(-20%) translateY(-1px);
+    }
+
+    30% {
+        transform: translateX(-5%) translateY(-0.5px);
+    }
+
+    /* Cruise phase */
+    40% {
+        transform: translateX(10%) translateY(0px);
+    }
+
+    50% {
+        transform: translateX(20%) translateY(-0.5px);
+    }
+
+    60% {
+        transform: translateX(28%) translateY(0px);
+    }
+
+    /* Deceleration phase */
+    70% {
+        transform: translateX(32%) translateY(-0.5px);
+    }
+
+    80% {
+        transform: translateX(35%) translateY(0px);
+        opacity: 1;
+    }
+
+    /* Disappearing phase */
+    85% {
+        transform: translateX(37%) translateY(0px);
+        opacity: 0.7;
+    }
+
+    90% {
+        transform: translateX(40%) translateY(0px);
+        opacity: 0.3;
+    }
+
+    95% {
+        transform: translateX(42%) translateY(0px);
+        opacity: 0;
+    }
+
+    /* Reset phase */
+    100% {
+        transform: translateX(-40%) translateY(0px);
+        opacity: 0;
+    }
+}
+
+/* Realistic wheel spinning */
+@keyframes wheel-spin-realistic {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Enhanced smoke animations */
+.smoke-0 {
+    animation: smoke-realistic-0 2s infinite;
+}
+
+.smoke-1 {
+    animation: smoke-realistic-1 2.3s infinite;
+}
+
+.smoke-2 {
+    animation: smoke-realistic-2 2.1s infinite;
+}
+
+@keyframes smoke-realistic-0 {
+    0% {
+        transform: translateY(0px) scale(0.8);
+        opacity: 0.9;
+    }
+
+    30% {
+        transform: translateY(-8px) scale(1);
+        opacity: 0.7;
+    }
+
+    60% {
+        transform: translateY(-15px) scale(1.2);
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: translateY(-25px) scale(1.5);
+        opacity: 0;
+    }
+}
+
+@keyframes smoke-realistic-1 {
+    0% {
+        transform: translateY(0px) scale(0.9);
+        opacity: 0.8;
+    }
+
+    35% {
+        transform: translateY(-10px) scale(1.1);
+        opacity: 0.6;
+    }
+
+    65% {
+        transform: translateY(-18px) scale(1.3);
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: translateY(-30px) scale(1.6);
+        opacity: 0;
+    }
+}
+
+@keyframes smoke-realistic-2 {
+    0% {
+        transform: translateY(0px) scale(0.7);
+        opacity: 0.9;
+    }
+
+    25% {
+        transform: translateY(-6px) scale(0.9);
+        opacity: 0.8;
+    }
+
+    55% {
+        transform: translateY(-12px) scale(1.1);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(-20px) scale(1.4);
+        opacity: 0;
+    }
+}
+
+/* Floating text animation */
+@keyframes text-float-drag {
+    0% {
+        transform: translateY(-80%) rotate(-3deg);
+    }
+
+    50% {
+        transform: translateY(-85%) rotate(1deg);
+    }
+
+    100% {
+        transform: translateY(-80%) rotate(-3deg);
+    }
+}
+
+/* Thread swaying animation */
+@keyframes thread-sway {
+    0% {
+        transform: translateY(-50%) rotate(-15deg);
+    }
+
+    50% {
+        transform: translateY(-50%) rotate(-10deg);
+    }
+
+    100% {
+        transform: translateY(-50%) rotate(-15deg);
+    }
+}
+
+/* Text wobble effect for dragging simulation */
+@keyframes text-wobble {
+    0% {
+        transform: rotate(-1deg) scale(1);
+    }
+
+    100% {
+        transform: rotate(1deg) scale(1.02);
+    }
+}

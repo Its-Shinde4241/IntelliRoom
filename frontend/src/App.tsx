@@ -2,7 +2,7 @@ import { Toaster } from "sonner";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import CarLoader from "./components/CarLoader";
 import Signupform from "./components/auth/Signupform";
 import Signinform from "./components/auth/Signinform";
 import Homepage from "./pages/Homepage";
@@ -23,12 +23,8 @@ export default function App() {
 
   if (loading) {
     return (
-
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-
-        <div className="h-screen flex items-center justify-center bg-background">
-          <Loader2 className="animate-spin h-10 w-10 text-primary" />
-        </div>
+        <CarLoader />
       </ThemeProvider>
     );
   }
