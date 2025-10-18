@@ -111,6 +111,9 @@ export default function PreviewComponent({
                                         <Badge variant="outline" className="text-xs">
                                             Live Preview
                                         </Badge>
+                                        <Badge variant={"destructive"}>
+                                            for better performance, open in new window
+                                        </Badge>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <TooltipProvider delayDuration={200} skipDelayDuration={50}>
