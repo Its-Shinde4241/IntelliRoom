@@ -55,7 +55,7 @@ export default function RoomPage() {
   const { user } = useAuthStore();
   const {
     rooms,
-    loading: roomLoading,
+    roomLoading,
     error: roomError,
     getUserRooms,
     addFileToRoom,
@@ -66,7 +66,7 @@ export default function RoomPage() {
 
   const {
     files,
-    loading: fileLoading,
+    fileLoading,
     getFilesByRoom,
     deleteFile,
     createFile
@@ -99,11 +99,14 @@ export default function RoomPage() {
   // Load data on mount
   useEffect(() => {
     if (roomId && user) {
-      getUserRooms(user.uid);
+      // Only fetch user rooms if we don't have any rooms yet
+      if (rooms.length === 0) {
+        getUserRooms(user.uid as string);
+      }
+      // Always fetch files when roomId changes
       getFilesByRoom(roomId);
     }
-  }, [roomId, user, getUserRooms, getFilesByRoom]);
-
+  }, [roomId, user, rooms.length, getUserRooms, getFilesByRoom]);
   // Filter files based on room and search
   const roomFiles = files.filter((file: any) =>
     file.roomId === roomId &&

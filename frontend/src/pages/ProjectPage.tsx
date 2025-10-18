@@ -25,7 +25,6 @@ import { toast } from "sonner";
 import Editor from "@monaco-editor/react";
 import AgentPopover from "@/components/AgentPopover";
 
-// Import stores
 import { useAuthStore } from "@/store/authStore";
 import { useProjectStore } from "@/store/projectStore";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -39,28 +38,30 @@ export default function ProjectPage() {
   const projectId = params.projectId as string;
   const { state, toggleSidebar } = useSidebar();
 
-  // Zustand stores
   const { user } = useAuthStore();
   const {
     projects,
-    loading: projectLoading,
+    projectFilesLoading,
     error: projectError,
     fetchUserProjects,
     getProjectFiles,
     runProject,
   } = useProjectStore();
 
-  // Local state
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewTransitioning, setIsPreviewTransitioning] = useState(false);
   const [previewContent, setPreviewContent] = useState("");
 
-  // File editing state
   const [htmlContent, setHtmlContent] = useState("");
   const [cssContent, setCssContent] = useState("");
   const [jsContent, setJsContent] = useState("");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSyncedContent, setLastSyncedContent] = useState<{
+    html: string;
+    css: string;
+    js: string;
+  }>({ html: htmlContent, css: cssContent, js: jsContent });
 
   // Get current project from the projects array
   const project = projects.find((p: any) => p.id === projectId);
@@ -68,26 +69,42 @@ export default function ProjectPage() {
   // Load data on mount
   useEffect(() => {
     if (projectId && user) {
-      fetchUserProjects();
+      // Only fetch user projects if we don't have any projects yet
+      if (projects.length === 0) {
+        fetchUserProjects();
+      }
+      // Always fetch project files when projectId changes
       getProjectFiles(projectId);
     }
-  }, [projectId, user, fetchUserProjects, getProjectFiles]);
+  }, [projectId, user, projects.length, fetchUserProjects, getProjectFiles]);
 
-  // Sync file contents with local state
+  // Sync file contents with local state (only when not saving)
   useEffect(() => {
-    if (project?.files) {
+    if (project?.files && !isSaving) {
       const html = project.files.find((f: any) => f.type === "html");
       const css = project.files.find((f: any) => f.type === "css");
       const js = project.files.find((f: any) => f.type === "js");
 
-      setHtmlContent(html?.content || getDefaultHtml());
-      setCssContent(css?.content || getDefaultCss());
-      setJsContent(js?.content || getDefaultJs());
-      setHasUnsavedChanges(false);
-    }
-  }, [project?.files]);
+      const newHtmlContent = html?.content || getDefaultHtml();
+      const newCssContent = css?.content || getDefaultCss();
+      const newJsContent = js?.content || getDefaultJs();
+      setLastSyncedContent({ html: newHtmlContent, css: newCssContent, js: newJsContent });
 
-  // Get files by type
+      // Only update if content is different from what we have locally
+      // This prevents unnecessary re-renders when saving
+      const currentContent = { html: htmlContent, css: cssContent, js: jsContent };
+      const newContent = { html: newHtmlContent, css: newCssContent, js: newJsContent };
+
+      if (JSON.stringify(currentContent) !== JSON.stringify(lastSyncedContent)) {
+        setHtmlContent(newHtmlContent);
+        setCssContent(newCssContent);
+        setJsContent(newJsContent);
+        setLastSyncedContent(newContent);
+        setHasUnsavedChanges(false);
+      }
+    }
+  }, [project?.files, isSaving]);
+
   const htmlFile = project?.files.find((f: any) => f.type === "html");
   const cssFile = project?.files.find((f: any) => f.type === "css");
   const jsFile = project?.files.find((f: any) => f.type === "js");
@@ -101,7 +118,6 @@ export default function ProjectPage() {
   };
 
   const handleRefreshPreview = () => {
-    // Force iframe refresh by temporarily changing the srcDoc
     setHtmlContent(prev => prev);
     toast.success("Preview refreshed", { duration: 1000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
   };
@@ -113,7 +129,6 @@ export default function ProjectPage() {
     }
   };
 
-  // Default content functions
   const getDefaultHtml = () => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,7 +244,6 @@ function animateElements() {
 
 
 
-  // Content change handlers
   const handleHtmlChange = (value: string | undefined) => {
     setHtmlContent(value || "");
     setHasUnsavedChanges(true);
@@ -253,7 +267,6 @@ function animateElements() {
     setHasUnsavedChanges(true);
   }, []);
 
-  // Save functionality
   const saveAllFiles = async () => {
     if (!project || isSaving) return;
 
@@ -278,6 +291,13 @@ function animateElements() {
       if (jsFile) {
         await updateProjectFile(project.id, jsFile.id, { content: jsContent });
       }
+
+      // Update the last synced content to current content
+      setLastSyncedContent({
+        html: htmlContent,
+        css: cssContent,
+        js: jsContent
+      });
 
       setHasUnsavedChanges(false);
       toast.success("All files saved successfully!", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
@@ -324,7 +344,6 @@ function animateElements() {
         ''
       );
 
-      // Inject CSS into HTML
       content = content.replace(
         '</head>',
         `<style>\n${cssContent}\n</style>\n</head>`
@@ -339,7 +358,6 @@ function animateElements() {
         ''
       );
 
-      // Inject JS into HTML
       content = content.replace(
         '</body>',
         `<script>\n${jsContent}\n</script>\n</body>`
@@ -372,8 +390,7 @@ function animateElements() {
     setTimeout(() => setIsPreviewTransitioning(false), 300);
   }, []);
 
-  // Loading state
-  if (projectLoading) {
+  if (projectFilesLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
@@ -384,7 +401,6 @@ function animateElements() {
     );
   }
 
-  // Error state
   if (projectError) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -399,7 +415,6 @@ function animateElements() {
     );
   }
 
-  // Project not found
   if (!project) {
     return (
       <div className="h-screen flex items-center justify-center">

@@ -21,7 +21,9 @@ interface Room {
 interface RoomState {
   rooms: Room[];
   activeRoom: Room | null;
-  loading: boolean;
+  roomsLoading: boolean;
+  roomLoading: boolean;
+  roomActionLoading: boolean;
   error: string | null;
 
   getUserRooms: (userId: string) => Promise<void>;
@@ -42,12 +44,14 @@ interface RoomState {
 const useRoomStore = create<RoomState>((set, get) => ({
   rooms: [],
   activeRoom: null,
-  loading: false,
+  roomsLoading: false,
+  roomLoading: false,
+  roomActionLoading: false,
   error: null,
 
   getUserRooms: async (userId: string) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomsLoading: true, error: null });
       const response = await api.get<Room[]>(`/rooms/user/${userId}`);
       set({ rooms: response.data });
       // toast.success("Rooms loaded successfully", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
@@ -55,13 +59,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
       toast.error("Failed to fetch rooms", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
       set({ error: error instanceof Error ? error.message : 'Failed to fetch rooms' });
     } finally {
-      set({ loading: false });
+      set({ roomsLoading: false });
     }
   },
 
   getRoom: async (roomId: string) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomLoading: true, error: null });
       const response = await api.get<Room>(`/rooms/${roomId}`);
       set({ activeRoom: response.data });
 
@@ -75,13 +79,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
       toast.error("Failed to fetch room");
       set({ error: error instanceof Error ? error.message : 'Failed to fetch room' });
     } finally {
-      set({ loading: false });
+      set({ roomLoading: false });
     }
   },
 
   createRoom: async (name: string, password?: string) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomActionLoading: true, error: null });
       const response = await api.post<Room>('/rooms', {
         name,
         password,
@@ -99,13 +103,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ error: errorMessage });
       throw error; // Re-throw to allow caller to handle
     } finally {
-      set({ loading: false });
+      set({ roomActionLoading: false });
     }
   },
 
   updateRoom: async (roomId: string, updates: { name?: string; password?: string }) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomActionLoading: true, error: null });
       const response = await api.put<Room>(`/rooms/${roomId}`, updates);
 
       const rooms = get().rooms.map(room =>
@@ -123,13 +127,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ error: errorMessage });
       throw error;
     } finally {
-      set({ loading: false });
+      set({ roomActionLoading: false });
     }
   },
 
   deleteRoom: async (roomId: string) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomActionLoading: true, error: null });
       const roomName = get().rooms.find(room => room.id === roomId)?.name || 'Room';
       await api.delete(`/rooms/${roomId}`);
 
@@ -146,13 +150,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ error: errorMessage });
       throw error;
     } finally {
-      set({ loading: false });
+      set({ roomActionLoading: false });
     }
   },
 
   getRoomFiles: async (roomId: string) => {
     try {
-      set({ loading: true, error: null });
+      set({ roomLoading: true, error: null });
       const response = await api.get<File[]>(`/rooms/${roomId}/files`);
 
       if (get().activeRoom?.id === roomId) {
@@ -169,7 +173,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
       toast.error(errorMessage);
       set({ error: errorMessage });
     } finally {
-      set({ loading: false });
+      set({ roomLoading: false });
     }
   },
 

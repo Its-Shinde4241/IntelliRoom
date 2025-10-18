@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import useFileStore from "@/store/fileStore";
 
 interface NewFilePopoverProps {
-  onCreateFile: (fileName: string, fileType: string) => void;
+  onCreateFile: (fileName: string, fileType: string) => Promise<void>;
 }
 
 const FILE_TYPES = {
@@ -35,7 +36,9 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
   const [fileType, setFileType] = useState<string>("");
   const [open, setOpen] = useState(false);
 
-  const handleCreate = () => {
+  const { fileActionLoading } = useFileStore();
+
+  const handleCreate = async () => {
     if (!fileName.trim()) {
       toast.error("Please enter a file name", {
         duration: 2000,
@@ -69,23 +72,35 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
       return;
     }
 
-    const cleanFileName = fileName.trim();
-    onCreateFile(cleanFileName, fileType);
+    try {
+      const cleanFileName = fileName.trim();
+      await onCreateFile(cleanFileName, fileType);
 
-    // Reset form and close popover
-    setFileName("");
-    setFileType("");
-    setOpen(false);
+      // Only reset form and close popover after successful creation
+      setFileName("");
+      setFileType("");
+      setOpen(false);
+    } catch (error) {
+      // Error is already handled by the parent function
+      console.error("File creation failed:", error);
+    }
   };
 
   const handleCancel = () => {
+    // Don't allow cancel during file creation
+    if (fileActionLoading) return;
+
     setFileName("");
     setFileType("");
     setOpen(false);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      // Don't allow closing during file creation
+      if (!newOpen && fileActionLoading) return;
+      setOpen(newOpen);
+    }} modal={false}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start">
           <Plus className="h-4 w-4 mr-2" />
@@ -103,6 +118,10 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
             e.target instanceof Element &&
             e.target.closest("[data-radix-select-content]")
           ) {
+            e.preventDefault();
+          }
+          // Don't close during file creation
+          if (fileActionLoading) {
             e.preventDefault();
           }
         }}
@@ -125,16 +144,16 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
                 placeholder="Enter file name (letters and underscores only)"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && fileName.trim() && fileType) {
-                    handleCreate();
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && fileName.trim() && fileType && !fileActionLoading) {
+                    await handleCreate();
                   }
                 }}
-                className={`text-sm ${
-                  fileName && !/^[a-zA-Z_]+$/.test(fileName)
-                    ? "border-red-500 focus:border-red-500"
-                    : ""
-                }`}
+                className={`text-sm ${fileName && !/^[a-zA-Z_]+$/.test(fileName)
+                  ? "border-red-500 focus:border-red-500"
+                  : ""
+                  }`}
+                disabled={fileActionLoading}
                 autoFocus
               />
               {fileName && !/^[a-zA-Z_]+$/.test(fileName) && (
@@ -148,7 +167,7 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
               <Label htmlFor="fileType" className="text-sm">
                 File Type
               </Label>
-              <Select value={fileType} onValueChange={setFileType}>
+              <Select value={fileType} onValueChange={setFileType} disabled={fileActionLoading}>
                 <SelectTrigger className="text-sm">
                   <SelectValue placeholder="Select file type" />
                 </SelectTrigger>
@@ -180,13 +199,25 @@ export default function NewFilePopover({ onCreateFile }: NewFilePopoverProps) {
           <div className="flex gap-2 pt-2">
             <Button
               onClick={handleCreate}
-              disabled={!fileName.trim() || !fileType}
+              disabled={!fileName.trim() || !fileType || fileActionLoading}
               size="sm"
               className="flex-1"
             >
-              Create
+              {fileActionLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                "Create"
+              )}
             </Button>
-            <Button variant="outline" onClick={handleCancel} size="sm">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              size="sm"
+              disabled={fileActionLoading}
+            >
               Cancel
             </Button>
           </div>

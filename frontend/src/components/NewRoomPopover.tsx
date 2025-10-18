@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarMenuButton } from "./ui/sidebar";
+import useRoomStore from "@/store/roomStore";
 
 interface NewRoomPopoverProps {
-  onCreateRoom: (roomName: string, password: string) => void;
+  onCreateRoom: (roomName: string, password: string) => Promise<void>;
 }
 
 export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
@@ -20,7 +21,9 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
   const [password, setPassword] = useState("");
   const [open, setOpen] = useState(false);
 
-  const handleCreate = () => {
+  const { roomActionLoading } = useRoomStore();
+
+  const handleCreate = async () => {
     if (!roomName.trim()) {
       toast.error("Please enter a room name", {
         duration: 2000,
@@ -65,25 +68,37 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
       return;
     }
 
-    const cleanRoomName = roomName.trim();
-    const roomPassword = password.trim();
+    try {
+      const cleanRoomName = roomName.trim();
+      const roomPassword = password.trim();
 
-    onCreateRoom(cleanRoomName, roomPassword);
+      await onCreateRoom(cleanRoomName, roomPassword);
 
-    // Reset form and close popover
-    setRoomName("");
-    setPassword("");
-    setOpen(false);
+      // Only reset form and close popover after successful creation
+      setRoomName("");
+      setPassword("");
+      setOpen(false);
+    } catch (error) {
+      // Error is already handled by the parent function
+      console.error("Room creation failed:", error);
+    }
   };
 
   const handleCancel = () => {
+    // Don't allow cancel during room creation
+    if (roomActionLoading) return;
+
     setRoomName("");
     setPassword("");
     setOpen(false);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      // Don't allow closing during room creation
+      if (!newOpen && roomActionLoading) return;
+      setOpen(newOpen);
+    }} modal={false}>
       <PopoverTrigger asChild>
         <SidebarMenuButton
           variant={"outline"}
@@ -109,12 +124,16 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
           ) {
             e.preventDefault();
           }
+          // Don't close during room creation
+          if (roomActionLoading) {
+            e.preventDefault();
+          }
         }}
       >
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            handleCreate();
+            await handleCreate();
           }}
           className="grid gap-4"
         >
@@ -136,11 +155,12 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
                 autoComplete="off"
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && roomName.trim() && password.trim()) {
-                    handleCreate();
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && roomName.trim() && password.trim() && !roomActionLoading) {
+                    await handleCreate();
                   }
                 }}
+                disabled={roomActionLoading}
                 className={`text-sm ${roomName && !/^[a-zA-Z0-9\s_-]+$/.test(roomName)
                   ? "border-red-500 focus:border-red-500"
                   : ""
@@ -165,12 +185,13 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
                 placeholder="Enter room password (min 4 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && roomName.trim() && password.trim()) {
-                    handleCreate();
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && roomName.trim() && password.trim() && !roomActionLoading) {
+                    await handleCreate();
                   }
                 }}
                 className="text-sm"
+                disabled={roomActionLoading}
                 required
               />
             </div>
@@ -188,17 +209,25 @@ export default function NewRoomPopover({ onCreateRoom }: NewRoomPopoverProps) {
           <div className="flex gap-2 pt-2">
             <Button
               type="submit"
-              disabled={!roomName.trim() || !password.trim()}
+              disabled={!roomName.trim() || !password.trim() || roomActionLoading}
               size="sm"
               className="flex-1"
             >
-              Create
+              {roomActionLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                "Create"
+              )}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleCancel}
               size="sm"
+              disabled={roomActionLoading}
             >
               Cancel
             </Button>

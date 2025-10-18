@@ -16,7 +16,7 @@ export default function FilePage() {
   const fileId = params.fileId;
   const navigate = useNavigate();
 
-  const { activeFile, loading: fileLoading, getFile, updateFileContent } = useFileStore();
+  const { activeFile, fileLoading, getFile, updateFileContent } = useFileStore();
   const { runCode, loading: codeLoading } = useCodeStore();
   const { theme } = useTheme();
 
@@ -237,6 +237,17 @@ export default function FilePage() {
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(link.href), 100);
   }, [activeFile, editorValue]);
+
+  if (fileLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading file...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">

@@ -31,7 +31,9 @@ export interface UpdateFileData {
 interface FileState {
   files: File[];
   activeFile: File | null;
-  loading: boolean;
+  fileLoading: boolean;
+  filesLoading: boolean;
+  fileActionLoading: boolean;
   error: string | null;
 
   // File API methods
@@ -53,18 +55,20 @@ interface FileState {
 const useFileStore = create<FileState>((set, get) => ({
   files: [],
   activeFile: null,
-  loading: false,
+  fileLoading: false,
+  filesLoading: false,
+  fileActionLoading: false,
   error: null,
 
   getFile: async (fileId: string) => {
-    set({ loading: true, error: null });
+    set({ fileLoading: true, error: null });
     try {
       const response = await api.get(`/files/${fileId}`);
       const file = response.data as File;
 
       set({
         activeFile: file,
-        loading: false
+        fileLoading: false
       });
 
       // Also update the file in the files array if it exists
@@ -75,63 +79,63 @@ const useFileStore = create<FileState>((set, get) => ({
       const errorMessage = error.response?.data?.error || error.message || "Failed to fetch file";
       set({
         error: errorMessage,
-        loading: false
+        fileLoading: false
       });
       throw error;
     } finally {
-      set({ loading: false });
+      set({ fileLoading: false });
     }
   },
 
   getFilesByRoom: async (roomId: string) => {
-    set({ loading: true, error: null });
+    set({ filesLoading: true, error: null });
     try {
       const response = await api.get(`/rooms/${roomId}/files`);
       const files = response.data as File[];
 
       set({
         files,
-        loading: false
+        filesLoading: false
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || "Failed to fetch room files";
       set({
         error: errorMessage,
-        loading: false
+        filesLoading: false
       });
       throw error;
     }
   },
 
   getFilesByProject: async (projectId: string) => {
-    set({ loading: true, error: null });
+    set({ filesLoading: true, error: null });
     try {
       const response = await api.get(`/projects/${projectId}/files`);
       const files = response.data as File[];
 
       set({
         files,
-        loading: false
+        filesLoading: false
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || "Failed to fetch project files";
       set({
         error: errorMessage,
-        loading: false
+        filesLoading: false
       });
       throw error;
     }
   },
 
   createFile: async (fileData: CreateFileData) => {
-    set({ loading: true, error: null });
+    set({ fileActionLoading: true, error: null });
     try {
       const response = await api.post(`/files`, { ...fileData });
       const newFile = response.data as File;
 
       set((state) => ({
         files: [...state.files, newFile],
-        loading: false
+        fileActionLoading: false
       }));
 
       return newFile.id;
@@ -139,14 +143,14 @@ const useFileStore = create<FileState>((set, get) => ({
       const errorMessage = error.response?.data?.error || error.message || "Failed to create file";
       set({
         error: errorMessage,
-        loading: false
+        fileActionLoading: false
       });
       throw error;
     }
   },
 
   updateFile: async (fileData: UpdateFileData) => {
-    set({ loading: true, error: null });
+    set({ fileActionLoading: true, error: null });
     try {
       const response = await api.put(`/files/${fileData.id}`, { name: fileData.name, type: fileData.type, content: fileData.content, roomId: fileData.roomId, projectId: fileData.projectId });
       const updatedFile = response.data as File;
@@ -154,13 +158,13 @@ const useFileStore = create<FileState>((set, get) => ({
       set((state) => ({
         files: state.files.map(f => f.id === updatedFile.id ? updatedFile : f),
         activeFile: state.activeFile?.id === updatedFile.id ? updatedFile : state.activeFile,
-        loading: false
+        fileActionLoading: false
       }));
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || "Failed to update file";
       set({
         error: errorMessage,
-        loading: false
+        fileActionLoading: false
       });
       throw error;
     }
@@ -219,20 +223,20 @@ const useFileStore = create<FileState>((set, get) => ({
   },
 
   deleteFile: async (fileId: string) => {
-    set({ loading: true, error: null });
+    set({ fileActionLoading: true, error: null });
     try {
       await api.delete(`/files/${fileId}`);
 
       set((state) => ({
         files: state.files.filter(f => f.id !== fileId),
         activeFile: state.activeFile?.id === fileId ? null : state.activeFile,
-        loading: false
+        fileActionLoading: false
       }));
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || "Failed to delete file";
       set({
         error: errorMessage,
-        loading: false
+        fileActionLoading: false
       });
       throw error;
     }

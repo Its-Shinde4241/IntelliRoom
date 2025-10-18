@@ -31,9 +31,9 @@ function Homepage() {
 
 
 
-  const handleCreateRoom = (roomName: string, password: string) => {
+  const handleCreateRoom = async (roomName: string, password: string) => {
     try {
-      createRoom(roomName, password);
+      await createRoom(roomName, password);
     } catch (error) {
       console.error('Failed to create room:', error);
     }

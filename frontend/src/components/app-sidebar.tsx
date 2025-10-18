@@ -36,13 +36,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { createFile, activeFile, deleteFile, updateFileName } = useFileStore()
   const {
     projects,
+    projectsLoading,
     fetchUserProjects,
     createProject,
     updateProject,
     deleteProject,
-    renameProjectFile,
-    deleteProjectFile,
     runProject,
+    downloadProject,
   } = useProjectStore()
   const { open } = useSidebar();
 
@@ -83,8 +83,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu className="gap-2">
           <SidebarMenuItem>
             <NewRoomPopover
-              onCreateRoom={(roomName, password) => {
-                createRoom(roomName, password)
+              onCreateRoom={async (roomName, password) => {
+                await createRoom(roomName, password)
               }}
             />
           </SidebarMenuItem>
@@ -108,11 +108,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         />
         <NavProjects
           projects={projects}
+          projectsLoading={projectsLoading}
           onRenameProject={updateProject}
           onDeleteProject={deleteProject}
-          onRenameFile={(projectId, fileId, newName) => renameProjectFile(projectId, fileId, newName)}
-          onDeleteFile={(projectId, fileId) => deleteProjectFile(projectId, fileId)}
           onRunProject={runProject}
+          onDownloadProject={downloadProject}
         />
       </SidebarContent>
       <Separator />

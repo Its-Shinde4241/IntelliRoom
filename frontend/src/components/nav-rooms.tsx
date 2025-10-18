@@ -44,6 +44,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getfileExtension } from "@/lib/helper";
 import { toast } from "sonner";
 import NewFilePopover from "./NewFilePopover";
@@ -55,7 +56,6 @@ import useRoomStore from "@/store/roomStore";
 
 interface NavRoomsProps {
   activeFileId: string;
-  loading?: boolean;
   onRenameFile: (fileId: string, newName: string) => void;
   onDeleteFile?: (fileId: string) => void;
   onAddFile: (fileData: CreateFileData) => Promise<string>;
@@ -71,7 +71,7 @@ export function NavRooms({
   const { roomId: activeRoomId } = useParams<{ roomId: string }>();
 
   const { activeFile } = useFileStore();
-  const { activeRoom, rooms, updateRoom, deleteRoom, updateFileInRoom, removeFileFromRoom, addFileToRoom } = useRoomStore();
+  const { activeRoom, rooms, roomsLoading, updateRoom, deleteRoom, updateFileInRoom, removeFileFromRoom, addFileToRoom } = useRoomStore();
 
   const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
   const [activeRoomForNewFile, setActiveRoomForNewFile] = useState<string>("");
@@ -213,117 +213,152 @@ export function NavRooms({
     <SidebarGroup>
       <SidebarGroupLabel>Rooms</SidebarGroupLabel>
       <SidebarMenu>
-        {rooms.map((room) => {
-          const isOpen = openRooms.has(room.id);
-          const isActive = activeRoomId === room.id;
-
-          return (
+        {roomsLoading ? (
+          // Show skeleton when loading with exact same structure as real rooms
+          Array.from({ length: 3 }).map((_, index) => (
             <Collapsible
-              key={room.id}
+              key={`skeleton-${index}`}
               asChild
-              open={isOpen}
-              onOpenChange={(open) => handleRoomToggle(room.id, open)}
+              open={true}
               className="group/collapsible"
             >
               <SidebarMenuItem>
-                <ContextMenu>
-                  <ContextMenuTrigger asChild>
-                    <SidebarMenuButton
-                      tooltip={room.name}
-                      onClick={() => handleRoomClick(room.id)}
-                      isActive={isActive}
-                      className="cursor-pointer"
-                    >
-                      {isOpen ? (
-                        <DoorOpen className="h-4 w-4" />
-                      ) : (
-                        <DoorClosedLocked className="h-4 w-4" />
-                      )}
-                      <span>{room.name}</span>
-                    </SidebarMenuButton>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <div onClick={() => setActiveRoomForNewFile(room.id)}>
-                      <NewFilePopover onCreateFile={handleCreateFile} />
-                    </div>
-                    <UpdateRoomPopover
-                      currentRoomName={room.name}
-                      onUpdateRoom={(newName: string) =>
-                        handleUpdateRoom(room.id, newName)
-                      }
-                    />
-                    <ContextMenuItem
-                      onClick={() =>
-                        setRoomToDelete({ id: room.id, name: room.name })
-                      }
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Room
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-
-                {room.files?.length ? (
-                  <>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuAction className="data-[state=open]:rotate-90">
-                        <ChevronRight />
-                        <span className="sr-only">Toggle</span>
-                      </SidebarMenuAction>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {room.files?.map((file) => (
-                          <SidebarMenuSubItem key={`${room.id}-${file.id}`}>
-                            <ContextMenu>
-                              <ContextMenuTrigger asChild>
-                                <SidebarMenuSubButton
-                                  className="cursor-pointer"
-                                  onClick={() => handleFileClick(room.id, file.id)}
-                                  isActive={activeFileId === file.id || activeFile?.id === file.id}
-                                >
-                                  <FileIcon className="h-4 w-4" />
-                                  <span>
-                                    {file.name}.{getfileExtension(file.type)}
-                                  </span>
-                                </SidebarMenuSubButton>
-                              </ContextMenuTrigger>
-                              <ContextMenuContent>
-                                <RenameFilePopover
-                                  fileName={file.name}
-                                  onRename={(newName) => handleRenameFile(file.id, newName)}
-                                  trigger={
-                                    <ContextMenuItem
-                                      onSelect={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                      }}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5 mr-2" />
-                                      Rename File
-                                    </ContextMenuItem>
-                                  }
-                                />
-                                <ContextMenuItem
-                                  onClick={() => handleDeleteFile(file.id)}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                  Delete File
-                                </ContextMenuItem>
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </>
-                ) : null}
+                <SidebarMenuButton className="cursor-default h-8 p-2">
+                  <Skeleton className="h-4 w-4 shrink-0" />
+                  <Skeleton className="h-4 w-24 flex-1 max-w-24" />
+                </SidebarMenuButton>
+                <SidebarMenuAction className="cursor-default data-[state=open]:rotate-90">
+                  <Skeleton className="h-4 w-4" />
+                </SidebarMenuAction>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {Array.from({ length: 2 }).map((_, fileIndex) => (
+                      <SidebarMenuSubItem key={`file-skeleton-${index}-${fileIndex}`}>
+                        <SidebarMenuSubButton className="cursor-default">
+                          <Skeleton className="h-4 w-4 shrink-0" />
+                          <Skeleton className="h-4 w-20 flex-1 max-w-20" />
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
-          );
-        })}
+          ))
+        ) : (
+          rooms.map((room) => {
+            const isOpen = openRooms.has(room.id);
+            const isActive = activeRoomId === room.id;
+
+            return (
+              <Collapsible
+                key={room.id}
+                asChild
+                open={isOpen}
+                onOpenChange={(open) => handleRoomToggle(room.id, open)}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={room.name}
+                        onClick={() => handleRoomClick(room.id)}
+                        isActive={isActive}
+                        className="cursor-pointer"
+                      >
+                        {isOpen ? (
+                          <DoorOpen className="h-4 w-4" />
+                        ) : (
+                          <DoorClosedLocked className="h-4 w-4" />
+                        )}
+                        <span>{room.name}</span>
+                      </SidebarMenuButton>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      <div onClick={() => setActiveRoomForNewFile(room.id)}>
+                        <NewFilePopover onCreateFile={handleCreateFile} />
+                      </div>
+                      <UpdateRoomPopover
+                        currentRoomName={room.name}
+                        onUpdateRoom={(newName: string) => {
+                          room.name = newName;
+                          handleUpdateRoom(room.id, newName);
+                        }}
+                      />
+                      <ContextMenuItem
+                        onClick={() =>
+                          setRoomToDelete({ id: room.id, name: room.name })
+                        }
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Room
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+
+                  {room.files?.length ? (
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuAction className="data-[state=open]:rotate-90">
+                          <ChevronRight />
+                          <span className="sr-only">Toggle</span>
+                        </SidebarMenuAction>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {room.files?.map((file) => (
+                            <SidebarMenuSubItem key={`${room.id}-${file.id}`}>
+                              <ContextMenu>
+                                <ContextMenuTrigger asChild>
+                                  <SidebarMenuSubButton
+                                    className="cursor-pointer"
+                                    onClick={() => handleFileClick(room.id, file.id)}
+                                    isActive={activeFileId === file.id || activeFile?.id === file.id}
+                                  >
+                                    <FileIcon className="h-4 w-4" />
+                                    <span>
+                                      {file.name}.{getfileExtension(file.type)}
+                                    </span>
+                                  </SidebarMenuSubButton>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <RenameFilePopover
+                                    fileName={file.name}
+                                    onRename={(newName) => handleRenameFile(file.id, newName)}
+                                    trigger={
+                                      <ContextMenuItem
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5 mr-2" />
+                                        Rename File
+                                      </ContextMenuItem>
+                                    }
+                                  />
+                                  <ContextMenuItem
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Delete File
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </>
+                  ) : null}
+                </SidebarMenuItem>
+              </Collapsible>
+            );
+          })
+        )}
       </SidebarMenu>
 
       <AlertDialog

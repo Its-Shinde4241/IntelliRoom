@@ -4,12 +4,12 @@ import {
   ChevronRight,
   FileCode,
   File as FileIcon,
-  Pencil,
   Trash2,
   Play,
   OctagonAlert,
   FolderOpen,
   Folder,
+  Download,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -33,6 +33,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   AlertDialog,
@@ -45,32 +46,33 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
-import RenameFilePopover from "./RenameFilePopover";
+import { Skeleton } from "@/components/ui/skeleton";
 import RenameProjectPopover from "./RenameProjectPopover";
 import { toast } from "sonner";
 import type { WebDevFile, Project } from "@/store/projectStore";
 
 interface NavProjectsProps {
   projects: Project[];
-  onRenameFile?: (projectId: string, fileId: string, newName: string) => void;
-  onDeleteFile?: (projectId: string, fileId: string) => void;
-  onRenameProject?: (projectId: string, newName: string) => void;
-  onDeleteProject?: (projectId: string) => void;
-  onRunProject?: (projectId: string) => void;
+  projectsLoading?: boolean;
+  onRenameProject: (projectId: string, newName: string) => void;
+  onDeleteProject: (projectId: string) => void;
+  onRunProject: (projectId: string) => void;
+  onDownloadProject: (projectId: string) => void;
 }
 
 export default function NavProjects({
   projects,
-  onRenameFile,
-  onDeleteFile,
+  projectsLoading,
   onRenameProject,
   onDeleteProject,
   onRunProject,
+  onDownloadProject,
 }: NavProjectsProps) {
   const navigate = useNavigate();
   const params = useParams();
   const currentProjectId = params.projectId;
   const currentFileType = params.fileType;
+  const { state } = useSidebar();
 
   const [projectToDelete, setProjectToDelete] = useState<{
     id: string;
@@ -93,22 +95,43 @@ export default function NavProjects({
     navigate(`/project/${projectId}/${fileType}`);
   };
 
-  const handleRenameFile = async (
-    projectId: string,
-    fileId: string,
-    newName: string
-  ) => {
-    try {
-      await onRenameFile?.(projectId, fileId, newName);
-    } catch (error) {
-      throw error; // Let the popover handle the error
+  const handleDownloadFile = (projectId: string, fileId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    const file = project?.files.find(f => f.id === fileId);
+
+    if (file) {
+      const content = file.content || '';
+      const fileName = `${file.name}${getFileExtension(file.type)}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Downloaded "${fileName}"`, {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
     }
+
   };
 
-  const handleDeleteFile = (projectId: string, fileId: string) => {
-    if (confirm("Are you sure you want to delete this file?")) {
-      onDeleteFile?.(projectId, fileId);
+  const handleDownloadProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+
+    if (project) {
+      toast.success(`Downloading "${project.name}" project...`, {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 6 },
+      });
     }
+
+    onDownloadProject?.(projectId);
   };
 
   const handleRenameProject = async (projectId: string, newName: string) => {
@@ -149,6 +172,19 @@ export default function NavProjects({
     return type === "js" ? FileCode : FileIcon;
   };
 
+  const getFileExtension = (type: string) => {
+    switch (type) {
+      case "html":
+        return ".html";
+      case "css":
+        return ".css";
+      case "js":
+        return ".js";
+      default:
+        return "";
+    }
+  };
+
   const getProjectIcon = (projectId: string) => {
     return openProjects.has(projectId) ? FolderOpen : Folder;
   };
@@ -164,117 +200,136 @@ export default function NavProjects({
       <SidebarGroup>
         <SidebarGroupLabel>Web Projects</SidebarGroupLabel>
         <SidebarMenu>
-          {projects.map((project) => {
-            const ProjectIcon = getProjectIcon(project.id);
+          {projectsLoading ? (
+            // Show skeleton when loading projects
+            Array.from({ length: 2 }).map((_, index) => (
+              <SidebarMenuItem key={`project-skeleton-${index}`}>
+                <SidebarMenuButton className="cursor-default">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 ml-auto" />
+                </SidebarMenuButton>
+                {/* Show skeleton files for expanded projects */}
+                <div className="ml-6 mt-2 space-y-1">
+                  {Array.from({ length: 3 }).map((_, fileIndex) => (
+                    <div key={`file-skeleton-${index}-${fileIndex}`} className="flex items-center gap-2 pl-4">
+                      <Skeleton className="h-3 w-3" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  ))}
+                </div>
+              </SidebarMenuItem>
+            ))
+          ) : (
+            projects.map((project) => {
+              const ProjectIcon = getProjectIcon(project.id);
 
-            const isActiveProject = project.id === currentProjectId;
+              const isActiveProject = project.id === currentProjectId;
 
-            return (
-              <Collapsible
-                key={project.id}
-                asChild
-                defaultOpen={project.isActive || isActiveProject}
-                open={openProjects.has(project.id)}
-                className="group/collapsible"
-                onOpenChange={(isOpen) => handleProjectToggle(project.id, isOpen)}
-              >
-                <SidebarMenuItem>
-                  <ContextMenu>
-                    <ContextMenuTrigger asChild>
-                      <div className="flex items-center flex-1 group/menu-button">
-                        <CollapsibleTrigger asChild className="flex-1">
+              return (
+                <Collapsible
+                  key={project.id}
+                  asChild
+                  defaultOpen={project.isActive || isActiveProject}
+                  open={openProjects.has(project.id)}
+                  className="group/collapsible"
+                  onOpenChange={(isOpen) => handleProjectToggle(project.id, isOpen)}
+                >
+                  <SidebarMenuItem>
+                    <ContextMenu>
+                      <ContextMenuTrigger asChild>
+                        <div className="flex items-center flex-1 group/menu-button">
                           <SidebarMenuButton
                             tooltip={project.name}
-                            className={`${isActiveProject ? 'bg-accent text-accent-foreground font-medium' : ''}`}
+                            className={`flex-1 ${isActiveProject ? 'bg-accent text-accent-foreground font-medium' : ''}`}
                             onClick={() => handleProjectClick(project.id)}
                           >
                             <ProjectIcon className="h-4 w-4" />
                             <span>{project.name}</span>
-                            <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                           </SidebarMenuButton>
-                        </CollapsibleTrigger>
-                      </div>
-                    </ContextMenuTrigger>
-                    <ContextMenuContent>
-                      <ContextMenuItem
-                        onClick={() => handleRunProject(project.id)}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        Run Project
-                      </ContextMenuItem>
-                      <RenameProjectPopover
-                        projectName={project.name}
-                        onRename={(newName) => handleRenameProject(project.id, newName)}
-                      />
-                      <ContextMenuItem
-                        onClick={() => setProjectToDelete({ id: project.id, name: project.name })}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Project
-                      </ContextMenuItem>
-                    </ContextMenuContent>
-                  </ContextMenu>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {project.files.map((file: WebDevFile) => {
-                        const FileTypeIcon = getFileIcon(file.type);
-                        const isActiveFile = project.id === currentProjectId && file.type === currentFileType;
+                          {state === "expanded" && (
+                            <CollapsibleTrigger asChild>
+                              <button
+                                className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // The collapsible trigger will handle the toggle
+                                }}
+                              >
+                                <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                <span className="sr-only">Toggle</span>
+                              </button>
+                            </CollapsibleTrigger>
+                          )}
+                        </div>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem
+                          onClick={() => handleRunProject(project.id)}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Run Project
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => handleDownloadProject(project.id)}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Project
+                        </ContextMenuItem>
+                        <RenameProjectPopover
+                          projectName={project.name}
+                          onRename={(newName) => handleRenameProject(project.id, newName)}
+                        />
+                        <ContextMenuItem
+                          onClick={() => setProjectToDelete({ id: project.id, name: project.name })}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Project
+                        </ContextMenuItem>
+                      </ContextMenuContent>
+                    </ContextMenu>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {project.files.map((file: WebDevFile) => {
+                          const FileTypeIcon = getFileIcon(file.type);
+                          const isActiveFile = project.id === currentProjectId && file.type === currentFileType;
 
-                        return (
-                          <SidebarMenuSubItem key={file.id}>
-                            <ContextMenu>
-                              <ContextMenuTrigger asChild>
-                                <div className="flex items-center">
-                                  <SidebarMenuSubButton
-                                    onClick={() =>
-                                      handleFileClick(project.id, file.type)
-                                    }
-                                    className={`flex-1 ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
-                                  >
-                                    <FileTypeIcon className="h-4 w-4" />
-                                    <span>{file.name}</span>
-                                  </SidebarMenuSubButton>
-                                </div>
-                              </ContextMenuTrigger>
-                              <ContextMenuContent>
-                                <RenameFilePopover
-                                  fileName={file.name}
-                                  onRename={(newName) =>
-                                    handleRenameFile(project.id, file.id, newName)
-                                  }
-                                  trigger={
-                                    <ContextMenuItem
-                                      onSelect={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                      }}
+                          return (
+                            <SidebarMenuSubItem key={file.id}>
+                              <ContextMenu>
+                                <ContextMenuTrigger asChild>
+                                  <div className="flex items-center">
+                                    <SidebarMenuSubButton
+                                      onClick={() =>
+                                        handleFileClick(project.id, file.type)
+                                      }
+                                      className={`flex-1 ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
                                     >
-                                      <Pencil className="h-3.5 w-3.5 mr-2" />
-                                      Rename File
-                                    </ContextMenuItem>
-                                  }
-                                />
-                                <ContextMenuItem
-                                  onClick={() =>
-                                    handleDeleteFile(project.id, file.id)
-                                  }
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                  Delete File
-                                </ContextMenuItem>
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          </SidebarMenuSubItem>
-                        );
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            );
-          })}
+                                      <FileTypeIcon className="h-4 w-4" />
+                                      <span>{file.name}{getFileExtension(file.type)}</span>
+                                    </SidebarMenuSubButton>
+                                  </div>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                  <ContextMenuItem
+                                    onClick={() => handleDownloadFile(project.id, file.id)}
+                                  >
+                                    <Download className="h-3.5 w-3.5 mr-2" />
+                                    Download File
+                                  </ContextMenuItem>
+                                </ContextMenuContent>
+                              </ContextMenu>
+                            </SidebarMenuSubItem>
+                          );
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              );
+            })
+          )}
         </SidebarMenu>
 
         <AlertDialog

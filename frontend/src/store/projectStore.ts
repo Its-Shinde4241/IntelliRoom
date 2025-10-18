@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { FolderOpen, type LucideIcon } from 'lucide-react';
 import { api } from '@/lib/axiosInstance';
+import JSZip from 'jszip';
 
 export interface WebDevFile {
     id: string;
@@ -28,20 +29,20 @@ export interface Project {
 
 interface ProjectState {
     projects: Project[];
-    loading: boolean;
+    projectsLoading: boolean;
+    projectActionLoading: boolean;
+    projectFilesLoading: boolean;
+    fileActionLoading: boolean;
     error: string | null;
 
-    // Actions
     fetchUserProjects: () => Promise<void>;
     createProject: (projectName: string) => Promise<Project>;
     updateProject: (projectId: string, projectName: string) => Promise<void>;
     deleteProject: (projectId: string) => Promise<void>;
     getProjectFiles: (projectId: string) => Promise<WebDevFile[]>;
     updateProjectFile: (projectId: string, fileId: string, updates: Partial<WebDevFile>) => Promise<void>;
-    deleteProjectFile: (projectId: string, fileId: string) => Promise<void>;
-    renameProjectFile: (projectId: string, fileId: string, newName: string) => Promise<void>;
+    downloadProject: (projectId: string) => void;
     runProject: (projectId: string) => void;
-    setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     clearError: () => void;
 }
@@ -60,23 +61,26 @@ const handleError = (error: any, defaultMessage: string) => {
 export const useProjectStore = create<ProjectState>()(
     devtools((set, get) => ({
         projects: [],
-        loading: false,
+        projectsLoading: false,
+        projectActionLoading: false,
+        projectFilesLoading: false,
+        fileActionLoading: false,
         error: null,
 
         fetchUserProjects: async () => {
-            set({ loading: true, error: null });
+            set({ projectsLoading: true, error: null });
             try {
                 const response = await api.get('/projects/');
                 const transformedProjects = (response.data as any[]).map(transformProject);
-                set({ projects: transformedProjects, loading: false });
+                set({ projects: transformedProjects, projectsLoading: false });
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to fetch projects'), loading: false });
+                set({ error: handleError(error, 'Failed to fetch projects'), projectsLoading: false });
                 throw error;
             }
         },
 
         createProject: async (projectName: string) => {
-            set({ loading: true, error: null });
+            set({ projectActionLoading: true, error: null });
             try {
                 const response = await api.post('/projects', { projectName });
                 const newProject = transformProject(response.data);
@@ -84,25 +88,24 @@ export const useProjectStore = create<ProjectState>()(
                 newProject.files = projectfiles.data as WebDevFile[];
                 set(state => ({
                     projects: [...state.projects, newProject],
-                    loading: false,
+                    projectActionLoading: false,
                 }));
                 return newProject;
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to create project'), loading: false });
+                set({ error: handleError(error, 'Failed to create project'), projectActionLoading: false });
                 throw error;
             }
             finally {
-                set({ loading: false });
+                set({ projectActionLoading: false });
             }
         },
 
         updateProject: async (projectId: string, projectName: string) => {
-            set({ loading: true, error: null });
+            set({ projectActionLoading: true, error: null });
             try {
                 const response = await api.put('/projects', { projectId, projectName });
                 const updatedProject = transformProject(response.data);
 
-                // Fetch files to ensure they're included
                 const filesResponse = await api.get(`/projects/${projectId}/files`);
                 updatedProject.files = filesResponse.data as WebDevFile[];
 
@@ -110,46 +113,47 @@ export const useProjectStore = create<ProjectState>()(
                     projects: state.projects.map(project =>
                         project.id === projectId ? updatedProject : project
                     ),
-                    loading: false,
+                    projectActionLoading: false,
                 }));
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to update project'), loading: false });
+                set({ error: handleError(error, 'Failed to update project'), projectActionLoading: false });
                 throw error;
             }
         },
 
         deleteProject: async (projectId: string) => {
-            set({ loading: true, error: null });
+            set({ projectActionLoading: true, error: null });
             try {
                 await api.delete(`/projects/${projectId}`);
                 set(state => ({
                     projects: state.projects.filter(project => project.id !== projectId),
-                    loading: false,
+                    projectActionLoading: false,
                 }));
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to delete project'), loading: false });
+                set({ error: handleError(error, 'Failed to delete project'), projectActionLoading: false });
                 throw error;
             }
         },
 
         getProjectFiles: async (projectId: string) => {
-            set({ error: null });
+            set({ projectFilesLoading: true, error: null });
             try {
                 const response = await api.get(`/projects/${projectId}/files`);
                 set(state => ({
                     projects: state.projects.map(project =>
                         project.id === projectId ? { ...project, files: response.data as WebDevFile[] } : project
                     ),
+                    projectFilesLoading: false,
                 }));
                 return response.data;
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to fetch project files') });
+                set({ error: handleError(error, 'Failed to fetch project files'), projectFilesLoading: false });
                 throw error;
             }
         },
 
         updateProjectFile: async (projectId: string, fileId: string, updates: Partial<WebDevFile>) => {
-            set({ error: null });
+            set({ fileActionLoading: true, error: null });
             try {
                 const response = await api.put(`/projects/${projectId}/files/${fileId}`, updates);
                 const updatedFile: WebDevFile = response.data as WebDevFile;
@@ -165,53 +169,61 @@ export const useProjectStore = create<ProjectState>()(
                             )
                         } : project
                     ),
+                    fileActionLoading: false,
                 }));
             } catch (error: any) {
-                set({ error: handleError(error, 'Failed to update project file') });
+                set({ error: handleError(error, 'Failed to update project file'), fileActionLoading: false });
                 throw error;
             }
         },
 
-        deleteProjectFile: async (projectId: string, fileId: string) => {
-            set({ error: null });
-            try {
-                await api.delete(`/projects/${projectId}/files/${fileId}`);
-                set(state => ({
-                    projects: state.projects.map(project =>
-                        project.id === projectId ? {
-                            ...project,
-                            files: project.files.filter(file => file.id !== fileId)
-                        } : project
-                    ),
-                }));
-            } catch (error: any) {
-                set({ error: handleError(error, 'Failed to delete project file') });
-                throw error;
-            }
-        },
+        downloadProject: (projectId: string) => {
+            const { projects } = get();
+            const project = projects.find(p => p.id === projectId);
 
-        renameProjectFile: async (projectId: string, fileId: string, newName: string) => {
-            set({ error: null });
-            try {
-                const response = await api.put(`/projects/${projectId}/files/${fileId}`, { name: newName });
-                const updatedFile = response.data;
-
-                set(state => ({
-                    projects: state.projects.map(project =>
-                        project.id === projectId ? {
-                            ...project,
-                            files: project.files.map(file =>
-                                file.id === fileId && updatedFile && typeof updatedFile === 'object'
-                                    ? { ...file, ...updatedFile }
-                                    : file
-                            )
-                        } : project
-                    ),
-                }));
-            } catch (error: any) {
-                set({ error: handleError(error, 'Failed to rename project file') });
-                throw error;
+            if (!project) {
+                console.error('Project not found');
+                return;
             }
+
+            const downloadAsZip = async () => {
+
+                const zip = new JSZip();
+
+                project.files.forEach(file => {
+                    const fileName = `${file.name}${getFileExtension(file.type)}`;
+                    const content = file.content || '';
+                    zip.file(fileName, content);
+                });
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${project.name}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const getFileExtension = (type: string) => {
+                switch (type) {
+                    case "html":
+                        return ".html";
+                    case "css":
+                        return ".css";
+                    case "js":
+                        return ".js";
+                    default:
+                        return "";
+                }
+            };
+
+            downloadAsZip().catch(error => {
+                console.error('Failed to download project:', error);
+            });
         },
 
         runProject: (projectId: string) => {
@@ -235,9 +247,7 @@ export const useProjectStore = create<ProjectState>()(
 <h1>No HTML file found</h1><p>Create an HTML file to see the preview.</p>
 </div></body></html>`;
 
-            // Replace external CSS link with inline styles
             if (cssFile?.content) {
-                // Remove external CSS link references
                 htmlContent = htmlContent.replace(
                     /<link[^>]*rel=["']stylesheet["'][^>]*href=["']styles\.css["'][^>]*>/gi,
                     ''
@@ -247,36 +257,29 @@ export const useProjectStore = create<ProjectState>()(
                     ''
                 );
 
-                // Inject CSS into HTML
                 htmlContent = htmlContent.replace(
                     '</head>',
                     `<style>\n${cssFile.content}\n</style>\n</head>`
                 );
             }
 
-            // Replace external JS script with inline script
             if (jsFile?.content) {
-                // Remove external JS script references
                 htmlContent = htmlContent.replace(
                     /<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi,
                     ''
                 );
 
-                // Inject JS into HTML
                 htmlContent = htmlContent.replace(
                     '</body>',
                     `<script>\n${jsFile.content}\n</script>\n</body>`
                 );
             }
 
-            // Create blob directly from the processed HTML content
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
 
-            // Open in new window
             const newWindow = window.open(url, '_blank', 'width=1200,height=800,resizable=yes,scrollbars=yes');
 
-            // Clean up URL after load
             setTimeout(() => URL.revokeObjectURL(url), 5000);
 
             if (newWindow) {
@@ -286,8 +289,6 @@ export const useProjectStore = create<ProjectState>()(
             }
         },
 
-
-        setLoading: (loading) => set({ loading }),
         setError: (error) => set({ error }),
         clearError: () => set({ error: null }),
     }), { name: 'project-store' })
