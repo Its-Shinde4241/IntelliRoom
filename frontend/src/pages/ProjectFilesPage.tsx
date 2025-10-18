@@ -16,7 +16,7 @@ export default function ProjectFilesPage() {
     const navigate = useNavigate();
     const { theme } = useTheme();
 
-    const { projects, loading: projectLoading, getProjectFiles, updateProjectFile, runProject } = useProjectStore();
+    const { projects, projectFilesLoading, getProjectFiles, updateProjectFile, runProject } = useProjectStore();
 
     const [mode, setMode] = useState<string>(() => {
         if (theme === "system") {
@@ -372,7 +372,7 @@ export default function ProjectFilesPage() {
                                 <span>Col {position.column}</span>
                                 <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
                                 <span>{charCount} chars</span>
-                                {(projectLoading || isSaving) && (
+                                {(projectFilesLoading || isSaving) && (
                                     <>
                                         <Separator orientation="vertical" className="w-[1px] h-3 bg-border" />
                                         <span className="text-yellow-600 animate-pulse">
