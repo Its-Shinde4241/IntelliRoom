@@ -9,5 +9,5 @@
       }
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "frontend/dist/index.html" }]
 }
