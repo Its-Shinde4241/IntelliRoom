@@ -4,8 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
 }
 
 model User {
@@ -46,7 +46,7 @@ model Message {
   roomId String
   room   Room   @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey", onDelete: Cascade)
 
-  @@index([roomId], map: "Message_roomId_fkey")
+  @@index([roomId], map: "Message_roomId_idx")
 }
 
 model File {
