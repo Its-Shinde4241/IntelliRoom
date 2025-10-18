@@ -51,8 +51,6 @@ class FileController {
 
     public async updateFile(req: Request, res: Response): Promise<void> {
         try {
-            console.log("Update file request body:", req.body);
-            console.log("Update file request params:", req.user);
             const userId = req.user?.uid;
             const { fileId } = req.params;
             const { type, name, content, roomId, projectId } = req.body;
