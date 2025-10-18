@@ -2,7 +2,7 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3001/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true,
 });
 
@@ -45,9 +45,9 @@ export const axiosJudge0 = axios.create({
     "Content-Type": "application/json",
     ...(JUDGE0_API_KEY
       ? {
-          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-          "X-RapidAPI-Key": JUDGE0_API_KEY,
-        }
+        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        "X-RapidAPI-Key": JUDGE0_API_KEY,
+      }
       : {}),
   },
 });

@@ -19,7 +19,7 @@ app.use(cors({
 }))
 
 app.get("/api", (req, res) => {
-    res.send("on intelliroom backend api");
+    res.send("<h1>on intelliroom backend api</h1>");
 })
 
 
