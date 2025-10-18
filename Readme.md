@@ -94,14 +94,16 @@ Before running this project, make sure you have:
 
 ## ⚠️ Important Security Notice
 
-**CRITICAL**: Never commit your Firebase service account key (`serviceAccountKey.json`) to version control. This file contains sensitive credentials that could compromise your Firebase project if exposed.
+**CRITICAL**: Never commit your Firebase service account credentials to version control. These credentials can compromise your Firebase project if exposed.
 
 ### Security Best Practices:
 
-- Add `serviceAccountKey.json` to your `.gitignore` file
-- Store credentials as environment variables in production
+- **Always use environment variables** for Firebase credentials (see setup instructions below)
+- Add `.env` and `serviceAccountKey.json` to your `.gitignore` file
+- Store credentials securely in production environments
 - Rotate keys immediately if accidentally exposed
 - Use Firebase Admin SDK securely in server environments only
+- Never hardcode credentials in your source code
 
 ## 🚀 Getting Started
 
@@ -123,20 +125,46 @@ Create a `.env` file in the backend directory:
 
 ```env
 DATABASE_URL="mysql://username:password@localhost:3306/intelliroom"
-FIREBASE_SERVICE_ACCOUNT_KEY_PATH="./serviceAccountKey.json"
 PORT=3001
 NODE_ENV=development
 JWT_SECRET=your_jwt_secret_key
+
+# Firebase Configuration (REQUIRED)
+FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key-id","private_key":"-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n","client_email":"your-service-account@your-project.iam.gserviceaccount.com","client_id":"your-client-id","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url":"https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com","universe_domain":"googleapis.com"}
+
+# Optional: Gemini AI Integration
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_AGENT_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
 ```
+
+**Security Note**: Replace all placeholder values with your actual Firebase service account credentials. Get these from your Firebase Console → Project Settings → Service Accounts → Generate new private key.
 
 **Important**: Make sure to add the following to your `.gitignore` file:
 
-```
+```gitignore
+# Environment files (CRITICAL - Never commit these)
 .env
+.env.local
+.env.development
+.env.production
+
+# Firebase service account keys (if using file method)
 serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Dependencies and build outputs
 node_modules/
 dist/
 build/
+.next/
+coverage/
+
+# IDE and system files
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
 ```
 
 Set up the database:
@@ -182,23 +210,30 @@ npm run dev
 
 ### 4. Firebase Setup
 
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication with Email/Password and Google providers
-3. Generate a service account key:
+1. **Create a Firebase Project**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Click "Create a project" and follow the setup wizard
+
+2. **Enable Authentication**
+   - In your Firebase project, go to Authentication → Sign-in method
+   - Enable Email/Password and Google providers
+   - Configure authorized domains for your application
+
+3. **Generate Service Account Credentials**
    - Go to Project Settings → Service Accounts
    - Click "Generate new private key"
-   - Save as `serviceAccountKey.json` in the backend directory
-   - **NEVER commit this file to version control**
-4. Copy the Firebase config to your frontend `.env` file
-5. Set up Firestore database rules for secure data access
+   - **IMPORTANT**: Copy the JSON content and paste it as the value for `FIREBASE_SERVICE_ACCOUNT_KEY` in your `.env` file
+   - **DO NOT** download and save the JSON file to avoid accidentally committing it
 
-**Security Note**: In production, use environment variables instead of the service account key file:
+4. **Configure Frontend Firebase**
+   - In Project Settings → General, find your web app configuration
+   - Copy the Firebase config values to your frontend `.env` file
 
-```env
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_PRIVATE_KEY=your_private_key
-FIREBASE_CLIENT_EMAIL=your_client_email
-```
+5. **Set up Firestore Database**
+   - Go to Firestore Database and create a database
+   - Set up security rules for your application needs
+
+**Security Reminder**: Always use environment variables for Firebase credentials. The service account key should be stored as a JSON string in your `FIREBASE_SERVICE_ACCOUNT_KEY` environment variable, not as a separate file.
 
 ## 📁 Project Structure
 
@@ -322,12 +357,16 @@ The application integrates with Judge0 API to execute code in multiple languages
 2. Set production environment variables:
    ```env
    DATABASE_URL=your_production_database_url
-   FIREBASE_PROJECT_ID=your_project_id
-   FIREBASE_PRIVATE_KEY=your_private_key
-   FIREBASE_CLIENT_EMAIL=your_client_email
    JWT_SECRET=your_secure_jwt_secret
    NODE_ENV=production
    PORT=3001
+   
+   # Firebase Configuration
+   FIREBASE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"your-project-id",...}
+   
+   # Optional: Gemini AI
+   GEMINI_API_KEY=your_gemini_api_key
+   GEMINI_AGENT_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
    ```
 3. Deploy to your preferred platform (Heroku, Railway, DigitalOcean, etc.)
 4. Ensure proper CORS configuration for your frontend domain
@@ -341,14 +380,17 @@ The application integrates with Judge0 API to execute code in multiple languages
 
 ### Production Security Checklist
 
-- [ ] Environment variables are set correctly
-- [ ] Service account keys are not exposed
-- [ ] CORS is properly configured
-- [ ] HTTPS is enabled
-- [ ] Database connections are secure
+- [ ] Environment variables are properly configured
+- [ ] Firebase service account credentials are stored as environment variables (not files)
+- [ ] `.gitignore` file excludes all sensitive files and credentials
+- [ ] CORS is properly configured for your domain
+- [ ] HTTPS is enabled in production
+- [ ] Database connections use secure credentials
 - [ ] Firebase security rules are properly configured
-- [ ] Rate limiting is implemented
-- [ ] Input validation is in place
+- [ ] Rate limiting is implemented for API endpoints
+- [ ] Input validation and sanitization is in place
+- [ ] Error messages don't expose sensitive information
+- [ ] Regular security audits are conducted
 
 ## � Troubleshooting
 
@@ -362,9 +404,10 @@ The application integrates with Judge0 API to execute code in multiple languages
 
 **Firebase Authentication Errors**
 
-- Verify Firebase project configuration
-- Check if service account key is valid and not expired
+- Verify Firebase project configuration and environment variables
+- Check if service account credentials are properly formatted in the `.env` file
 - Ensure Firebase Auth is enabled for your project
+- Verify that the service account has the necessary permissions
 
 **Judge0 API Issues**
 

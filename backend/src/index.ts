@@ -13,30 +13,12 @@ import AgentRouter from "./routes/agentRouter";
 const app = express();
 const server = http.createServer(app);
 
-// websocket server setup
-// const wss = new WebSocketServer({ server });
-
-// wss.on("connection", (socket) => {
-//     console.log("🟢 Client connected");
-
-//     socket.on("message", (message) => {
-//         console.log("📨 Received:", message.toString());
-
-//         socket.send(`You said: ${message}`);
-//     });
-
-//     socket.on("close", () => {
-//         console.log("🔴 Client disconnected");
-//     });
-// });
-
 app.use(express.json());
 app.use(cors({
     origin: "http://localhost:5173", credentials: true
 }))
 
 app.get("/api", (req, res) => {
-    // console.log("Hello World");
     res.send("on intelliroom backend api");
 })
 
