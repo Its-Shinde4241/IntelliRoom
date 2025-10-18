@@ -9,14 +9,5 @@
       }
     }
   ],
-  "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/frontend/dist/index.html"
-    }
-  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
