@@ -2,7 +2,7 @@
 
 # IntelliRoom 🚀
 
-A collaborative real-time code editor with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
+A code editor with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
 
 ## 📸 Demo
 
