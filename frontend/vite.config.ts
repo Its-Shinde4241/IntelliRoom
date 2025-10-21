@@ -3,7 +3,6 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -12,8 +11,9 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist", // default, but explicit is better
+    outDir: "dist",
     emptyOutDir: true,
+    // assetsDir stays default: 'assets'
   },
-  base: "./", // crucial for correct asset loading on subpaths
+  base: "/", // absolute URLs: /assets/... so deep links load assets correctly
 });
