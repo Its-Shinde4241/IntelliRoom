@@ -97,7 +97,7 @@ export default function AccountPage() {
             setIsChangingPassword(false);
             toast.success("Password updated successfully!");
         } catch (error: any) {
-            if (error.code === 'auth/wrong-password') {
+            if (error.code === 'auth/invalid-credential') {
                 toast.error("Current password is incorrect!");
             } else {
                 toast.error("Failed to update password. Please try again.");

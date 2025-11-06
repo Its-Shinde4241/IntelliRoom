@@ -8,7 +8,6 @@ import {
 import {
     RefreshCw,
     ExternalLink,
-    Eye,
     X,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -35,36 +34,31 @@ export default function PreviewComponent({
     onOpenInNewWindow,
 }: PreviewComponentProps) {
 
-    // Close tooltips when cursor moves over iframe area
+    // Auto-close when panel gets too small (dragged near right edge)
+    const handlePanelResize = (size: number) => {
+        console.log('Panel resized to:', size); // Debug log
+        // Close if panel size is less than 20% (user dragged near right edge)
+        if (size < 30) {
+            console.log('Auto-closing preview due to small size:', size); // Debug log
+            onClose();
+        }
+    };
+
+    // Handle escape key to close preview
     useEffect(() => {
-        const handleCloseTooltips = () => {
-            // Force close all tooltips by dispatching an escape key event
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isOpen) {
+                onClose();
+            }
         };
 
-        // Target both iframe and preview content area
-        const iframes = document.querySelectorAll('iframe');
-        const previewAreas = document.querySelectorAll('.preview-content-area');
-
-        // Add listeners to iframes
-        iframes.forEach(iframe => {
-            iframe.addEventListener('mouseenter', handleCloseTooltips);
-        });
-
-        // Add listeners to preview content areas
-        previewAreas.forEach(area => {
-            area.addEventListener('mouseenter', handleCloseTooltips);
-        });
+        // Add escape key listener
+        document.addEventListener('keydown', handleEscapeKey);
 
         return () => {
-            iframes.forEach(iframe => {
-                iframe.removeEventListener('mouseenter', handleCloseTooltips);
-            });
-            previewAreas.forEach(area => {
-                area.removeEventListener('mouseenter', handleCloseTooltips);
-            });
+            document.removeEventListener('keydown', handleEscapeKey);
         };
-    }, [previewContent]);
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
@@ -73,7 +67,6 @@ export default function PreviewComponent({
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ease-in-out"
-                onClick={onClose}
             />
 
             {/* Resizable Preview Container */}
@@ -97,23 +90,31 @@ export default function PreviewComponent({
                     {/* Preview Panel */}
                     <ResizablePanel
                         defaultSize={60}
-                        minSize={25}
+                        minSize={15}
                         maxSize={90}
                         className="pointer-events-auto"
+                        onResize={handlePanelResize}
                     >
                         <div className="h-full bg-background border-l shadow-2xl flex flex-col transform transition-all duration-300 ease-in-out">
                             {/* Header */}
                             <div className="border-b p-2 bg-card/50">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Eye className="h-4 w-4 text-blue-600" />
-                                        <h3 className="font-semibold">Responsive Preview</h3>
-                                        <Badge variant="outline" className="text-xs">
-                                            Live Preview
-                                        </Badge>
-                                        <Badge variant={"destructive"}>
-                                            for better performance, open in new window
-                                        </Badge>
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                        {/* <div className="flex items-center gap-2">
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                            <h3 className="font-semibold">Responsive Preview</h3>
+                                        </div> */}
+                                        <div className="flex flex-wrap items-center gap-1 text-xs">
+                                            <Badge variant="outline" className="text-xs">
+                                                Live Preview
+                                            </Badge>
+                                            {/* <Badge variant={"destructive"} className="text-xs">
+                                                save & open in new window for better performance
+                                            </Badge> */}
+                                            <Badge variant={"secondary"} className="text-xs">
+                                                Press ESC or drag slider right to close
+                                            </Badge>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <TooltipProvider delayDuration={200} skipDelayDuration={50}>
@@ -145,7 +146,7 @@ export default function PreviewComponent({
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent side="bottom" sideOffset={5}>
-                                                    <p>Open in New Window</p>
+                                                    <p>save first & Open in New Window</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>

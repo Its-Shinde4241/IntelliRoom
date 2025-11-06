@@ -294,7 +294,10 @@ export default function Header({
             <PreviewButton onHandlePreview={onHandlePreview} />
 
             {/* Language Badge */}
-            <LanguageBadge language={language} />
+            {
+              language !== "-1" &&
+              <LanguageBadge language={language} />
+            }
 
             {/* Theme Toggle */}
             <ThemeToggle mode={mode} onModeToggle={onModeToggle} />

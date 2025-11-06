@@ -304,7 +304,7 @@ export default function NavProjects({
                                       onClick={() =>
                                         handleFileClick(project.id, file.type)
                                       }
-                                      className={`flex-1 ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
+                                      className={`flex-1 cursor-pointer ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
                                     >
                                       <FileTypeIcon className="h-4 w-4" />
                                       <span>{file.name}{getFileExtension(file.type)}</span>

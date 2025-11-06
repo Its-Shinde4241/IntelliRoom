@@ -496,12 +496,12 @@ function animateElements() {
 
       {/* Main Content with Monaco Editors */}
       <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal">
+        <ResizablePanelGroup direction="horizontal" className="border-t">
           {/* HTML Editor */}
           <ResizablePanel defaultSize={33} minSize={25}>
 
-            <div className="h-full flex flex-col">
-              <div className="border-b p-3 bg-orange-50 dark:bg-orange-950/20">
+            <div className="h-full flex flex-col border-r border-border">
+              <div className="border-b p-2 bg-orange-50 dark:bg-orange-950/20">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-orange-600" />
                   <span className="font-medium text-sm">HTML</span>
@@ -545,8 +545,8 @@ function animateElements() {
 
           {/* CSS Editor */}
           <ResizablePanel defaultSize={33} minSize={25}>
-            <div className="h-full flex flex-col">
-              <div className="border-b p-3 bg-blue-50 dark:bg-blue-950/20">
+            <div className="h-full flex flex-col border-r border-border">
+              <div className="border-b p-2 bg-blue-50 dark:bg-blue-950/20">
                 <div className="flex items-center gap-2">
                   <Palette className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-sm">CSS</span>
@@ -591,7 +591,7 @@ function animateElements() {
           {/* JavaScript Editor */}
           <ResizablePanel defaultSize={34} minSize={25}>
             <div className="h-full flex flex-col">
-              <div className="border-b p-3 bg-yellow-50 dark:bg-yellow-950/20">
+              <div className="border-b p-2 bg-yellow-50 dark:bg-yellow-950/20">
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-yellow-600" />
                   <span className="font-medium text-sm">JavaScript</span>

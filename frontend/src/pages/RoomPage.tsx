@@ -66,7 +66,7 @@ export default function RoomPage() {
 
   const {
     files,
-    fileLoading,
+    filesLoading,
     getFilesByRoom,
     deleteFile,
     createFile
@@ -74,7 +74,7 @@ export default function RoomPage() {
 
   // Local state
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     id: string;
@@ -147,7 +147,7 @@ export default function RoomPage() {
   };
 
   // Loading state
-  if (roomLoading || fileLoading) {
+  if (roomLoading || filesLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
