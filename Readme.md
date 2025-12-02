@@ -2,7 +2,7 @@
 
 # IntelliRoom 🚀
 
-A collaborative real-time code editor with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
+A real-time code editor & Ai project generator(HTML,CSS,JS) with integrated compilation and execution capabilities. Built with React, TypeScript, Node.js, and Prisma.
 
 ## 📸 Demo
 
@@ -44,7 +44,6 @@ A collaborative real-time code editor with integrated compilation and execution 
 
 <img width="1919" height="1079" alt="project_file" src="https://github.com/user-attachments/assets/72bbe7b6-dbe5-40ab-bbb3-d72f08af1242" />
 
-*Fully responsive interface that works on all devices*
 
 </div>
 
@@ -52,7 +51,6 @@ A collaborative real-time code editor with integrated compilation and execution 
 
 ## ✨ Features
 
-- **Real-time Collaborative Editing** - Multiple users can code together in shared rooms
 - **Multi-language Support** - Support for C++, Java, Python, JavaScript, TypeScript, HTML, CSS
 - **Integrated Terminal** - Run code directly in the browser with input/output handling
 - **File Management** - Create, edit, rename, and delete files within rooms and projects
@@ -440,13 +438,9 @@ The application integrates with Judge0 API to execute code in multiple languages
 - Test your changes thoroughly
 - Never commit sensitive credentials
 
-## �📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## 🛟 Support
 
-For support, [email](shindeshubham4241@gmail.com) or open an issue in the GitHub repository.
+For support, [email](shindeshubham5356@gmail.com) or open an issue in the GitHub repository.
 
 ## 🙏 Acknowledgments
 
