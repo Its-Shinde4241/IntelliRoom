@@ -13,10 +13,10 @@ import AgentRouter from "./routes/agentRouter";
 const app = express();
 const server = http.createServer(app);
 
-app.use(express.json());
 app.use(cors({
     origin: ["https://intelli-room.vercel.app", "http://localhost:5173"], credentials: true
 }))
+app.use(express.json());
 
 app.get("/api", (req, res) => {
     res.send("<h1>on intelliroom backend api</h1>");
