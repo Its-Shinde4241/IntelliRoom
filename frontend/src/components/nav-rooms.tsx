@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -71,7 +71,15 @@ export function NavRooms({
   const { roomId: activeRoomId } = useParams<{ roomId: string }>();
 
   const { activeFile } = useFileStore();
-  const { activeRoom, rooms, updateRoom, deleteRoom, updateFileInRoom, removeFileFromRoom, addFileToRoom } = useRoomStore();
+  const {
+    activeRoom,
+    rooms,
+    updateRoom,
+    deleteRoom,
+    updateFileInRoom,
+    removeFileFromRoom,
+    addFileToRoom,
+  } = useRoomStore();
 
   const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
   const [activeRoomForNewFile, setActiveRoomForNewFile] = useState<string>("");
@@ -81,21 +89,24 @@ export function NavRooms({
   } | null>(null);
 
   useEffect(() => {
-    const roomToOpen = activeFile?.roomId || activeRoom?.id || activeRoomId;
+    const roomToOpen = activeFile?.roomId || activeRoom?.roomId || activeRoomId;
 
     if (roomToOpen) {
-      setOpenRooms(prev => {
+      setOpenRooms((prev) => {
         if (prev.has(roomToOpen)) {
           return prev;
         }
         return new Set([roomToOpen]);
       });
     }
-  }, [activeFile?.roomId, activeRoom?.id, activeRoomId]);
+  }, [activeFile?.roomId, activeRoom?.roomId, activeRoomId]);
 
-  const handleFileClick = useCallback((roomId: string, fileId: string) => {
-    navigate(`/room/${roomId}/file/${fileId}`);
-  }, [navigate]);
+  const handleFileClick = useCallback(
+    (roomId: string, fileId: string) => {
+      navigate(`/room/${roomId}/file/${fileId}`);
+    },
+    [navigate],
+  );
 
   const handleRoomToggle = useCallback((roomId: string, isOpen: boolean) => {
     setOpenRooms((prev) => {
@@ -109,42 +120,44 @@ export function NavRooms({
     });
   }, []);
 
-  const handleRoomClick = useCallback((roomId: string) => {
-    navigate(`/room/${roomId}`);
-  }, [navigate]);
+  const handleRoomClick = useCallback(
+    (roomId: string) => {
+      navigate(`/room/${roomId}`);
+    },
+    [navigate],
+  );
 
-  const handleRenameFile = useCallback(async (
-    fileId: string,
-    newName: string
-  ) => {
-    try {
+  const handleRenameFile = useCallback(
+    async (fileId: string, newName: string) => {
       await onRenameFile(fileId, newName);
 
       // Update the file name in the room store
       updateFileInRoom(fileId, { name: newName });
-    } catch (error) {
-      throw error;
-    }
-  }, [onRenameFile, updateFileInRoom]);
+    },
+    [onRenameFile, updateFileInRoom],
+  );
 
-  const handleDeleteFile = useCallback((fileId: string) => {
-    try {
-      onDeleteFile?.(fileId);
+  const handleDeleteFile = useCallback(
+    (fileId: string) => {
+      try {
+        onDeleteFile?.(fileId);
 
-      // Remove the file from the room store
-      removeFileFromRoom(fileId);
+        // Remove the file from the room store
+        removeFileFromRoom(fileId);
 
-      toast.success("File deleted successfully", {
-        duration: 1000,
-        style: { width: "auto", minWidth: "fit-content", padding: 6 },
-      });
-    } catch {
-      toast.error("Failed to delete file", {
-        duration: 2000,
-        style: { width: "auto", minWidth: "fit-content", padding: 6 },
-      });
-    }
-  }, [onDeleteFile, removeFileFromRoom]);
+        toast.success("File deleted successfully", {
+          duration: 1000,
+          style: { width: "auto", minWidth: "fit-content", padding: 6 },
+        });
+      } catch {
+        toast.error("Failed to delete file", {
+          duration: 2000,
+          style: { width: "auto", minWidth: "fit-content", padding: 6 },
+        });
+      }
+    },
+    [onDeleteFile, removeFileFromRoom],
+  );
 
   const handleUpdateRoom = async (roomId: string, newName: string) => {
     try {
@@ -189,9 +202,9 @@ export function NavRooms({
 
       // Add the new file to the room store
       addFileToRoom(activeRoomForNewFile, {
-        id: newFileId,
+        fileId: newFileId,
         name: fileName,
-        type: fileType
+        type: fileType,
       });
 
       handleFileClick(activeRoomForNewFile, newFileId);
@@ -214,15 +227,15 @@ export function NavRooms({
       <SidebarGroupLabel>Rooms</SidebarGroupLabel>
       <SidebarMenu>
         {rooms.map((room) => {
-          const isOpen = openRooms.has(room.id);
-          const isActive = activeRoomId === room.id;
+          const isOpen = openRooms.has(room.roomId);
+          const isActive = activeRoomId === room.roomId;
 
           return (
             <Collapsible
-              key={room.id}
+              key={room.roomId}
               asChild
               open={isOpen}
-              onOpenChange={(open) => handleRoomToggle(room.id, open)}
+              onOpenChange={(open) => handleRoomToggle(room.roomId, open)}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -230,7 +243,7 @@ export function NavRooms({
                   <ContextMenuTrigger asChild>
                     <SidebarMenuButton
                       tooltip={room.name}
-                      onClick={() => handleRoomClick(room.id)}
+                      onClick={() => handleRoomClick(room.roomId)}
                       isActive={isActive}
                       className="cursor-pointer"
                     >
@@ -243,18 +256,18 @@ export function NavRooms({
                     </SidebarMenuButton>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <div onClick={() => setActiveRoomForNewFile(room.id)}>
+                    <div onClick={() => setActiveRoomForNewFile(room.roomId)}>
                       <NewFilePopover onCreateFile={handleCreateFile} />
                     </div>
                     <UpdateRoomPopover
                       currentRoomName={room.name}
                       onUpdateRoom={(newName: string) =>
-                        handleUpdateRoom(room.id, newName)
+                        handleUpdateRoom(room.roomId, newName)
                       }
                     />
                     <ContextMenuItem
                       onClick={() =>
-                        setRoomToDelete({ id: room.id, name: room.name })
+                        setRoomToDelete({ id: room.roomId, name: room.name })
                       }
                       className="text-destructive focus:text-destructive"
                     >
@@ -275,13 +288,20 @@ export function NavRooms({
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {room.files?.map((file) => (
-                          <SidebarMenuSubItem key={`${room.id}-${file.id}`}>
+                          <SidebarMenuSubItem
+                            key={`${room.roomId}-${file.fileId}`}
+                          >
                             <ContextMenu>
                               <ContextMenuTrigger asChild>
                                 <SidebarMenuSubButton
                                   className="cursor-pointer"
-                                  onClick={() => handleFileClick(room.id, file.id)}
-                                  isActive={activeFileId === file.id || activeFile?.id === file.id}
+                                  onClick={() =>
+                                    handleFileClick(room.roomId, file.fileId)
+                                  }
+                                  isActive={
+                                    activeFileId === file.fileId ||
+                                    activeFile?.fileId === file.fileId
+                                  }
                                 >
                                   <FileIcon className="h-4 w-4" />
                                   <span>
@@ -292,7 +312,9 @@ export function NavRooms({
                               <ContextMenuContent>
                                 <RenameFilePopover
                                   fileName={file.name}
-                                  onRename={(newName) => handleRenameFile(file.id, newName)}
+                                  onRename={(newName) =>
+                                    handleRenameFile(file.fileId, newName)
+                                  }
                                   trigger={
                                     <ContextMenuItem
                                       onSelect={(e) => {
@@ -306,7 +328,7 @@ export function NavRooms({
                                   }
                                 />
                                 <ContextMenuItem
-                                  onClick={() => handleDeleteFile(file.id)}
+                                  onClick={() => handleDeleteFile(file.fileId)}
                                   className="text-destructive focus:text-destructive"
                                 >
                                   <Trash2 className="h-3.5 w-3.5 mr-2" />

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import {
     getAuth, onAuthStateChanged,
-    type User,
+    type User as FirebaseUser,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup, signOut,
@@ -15,14 +15,19 @@ import { googleProvider } from "@/lib/firebase";
 import { api } from "@/lib/axiosInstance";
 import { reauthenticate } from "@/lib/helper";
 
+interface AuthUser extends FirebaseUser {
+    userId?: string; // Backend business ID
+}
+
 type AuthState = {
-    user: User | null;
+    user: AuthUser | null;
+    userId?: string; // Backend business ID
     loading: boolean;
     isSigningUp: boolean;
     isSigningIn: boolean;
     isSigningOut: boolean;
-    isupating: boolean;
-    setUser: (user: User | null) => void;
+    isUpdating: boolean;
+    setUser: (user: AuthUser | null) => void;
     initAuthListener: () => void;
     signUp: (email: string, Password: string) => void;
     signIn: (email: string, password: string) => void;
@@ -34,11 +39,12 @@ type AuthState = {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
+    userId: undefined,
     loading: true,
     isSigningUp: false,
     isSigningIn: false,
     isSigningOut: false,
-    isupating: false,
+    isUpdating: false,
 
     setUser: (user) => set({ user }),
 
@@ -104,7 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (!isBackendVerified) {
                 throw new Error("Backend verification failed after sign in");
             }
-            set({ user: UserCredentials.user });
+            set({ user: UserCredentials.user as AuthUser });
             // checkAuth will set the user if verification succeeds
         } catch (error) {
             console.error("Sign in error:", error);
@@ -147,7 +153,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             set({ isSigningOut: true });
             await signOut(getAuth());
-            set({ user: null });
+            set({ user: null, userId: undefined });
         } catch (error) {
             console.error("error in sign out store function:", error);
             throw error;
@@ -158,7 +164,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     updateProfile: async (name?: string, email?: string, password?: string, currpassword?: string) => {
         try {
-            set({ isupating: true });
+            set({ isUpdating: true });
             const auth = getAuth();
             const curruser = auth.currentUser;
             if (!curruser) throw new Error("No user is currently signed in.");
@@ -184,7 +190,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.error("Profile update error:", error);
             throw error;
         } finally {
-            set({ isupating: false });
+            set({ isUpdating: false });
         }
     },
 
@@ -194,7 +200,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             const currentUser = auth.currentUser;
 
             if (!currentUser) {
-                set({ user: null, loading: false });
+                set({ user: null, userId: undefined, loading: false });
                 return false;
             }
 
@@ -205,22 +211,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 }
             });
 
-            const data = response.data as { success: boolean };
+            const data = response.data as { success: boolean; userId?: string };
 
             if (data.success) {
                 // Only set user after backend verification succeeds
                 const currentState = get();
                 if (!currentState.user || currentState.user.uid !== currentUser.uid) {
-                    set({ user: currentUser, loading: false });
+                    set({ user: currentUser as AuthUser, userId: data.userId, loading: false });
+                } else if (data.userId && !currentState.userId) {
+                    set({ userId: data.userId });
                 }
                 return true;
             } else {
-                set({ user: null, loading: false });
+                set({ user: null, userId: undefined, loading: false });
                 return false;
             }
         } catch (error) {
             console.error("Check auth error:", error);
-            set({ user: null, loading: false });
+            set({ user: null, userId: undefined, loading: false });
             return false;
         }
     },

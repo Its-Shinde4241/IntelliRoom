@@ -28,7 +28,6 @@ class FileController {
         res.status(401).json({ error: "User not found" });
         return;
       }
-
       const result = await prisma.file.findUnique({
         where: { fileId: fileId, userId: firebaseUid },
         select: {
@@ -40,7 +39,6 @@ class FileController {
           updatedAt: true,
         },
       });
-
       if (result) {
         res.status(200).json({
           ...result,
@@ -58,6 +56,10 @@ class FileController {
   public async createFile(req: Request, res: Response): Promise<void> {
     try {
       const firebaseUid = req.user?.uid;
+      if (!firebaseUid) {
+        res.status(401).json({ error: "User not authenticated" });
+        return;
+      }
       const { type, name, roomId, projectId } = req.body;
 
       // Fetch user to get their business code
@@ -71,8 +73,40 @@ class FileController {
         return;
       }
 
+      // ✅ Lookup room by business code to get internal UUID
+      let internalRoomId: string | null = null;
+      if (roomId) {
+        const room = await prisma.room.findUnique({
+          where: { roomId },
+        });
+        if (!room) {
+          res.status(404).json({ error: "Room not found" });
+          return;
+        }
+        internalRoomId = room.id; // ✅ Get internal UUID
+      }
+
+      // ✅ Lookup project by business code to get internal UUID
+      let internalProjectId: string | null = null;
+      if (projectId) {
+        const project = await prisma.project.findUnique({
+          where: { projectId },
+        });
+        if (!project) {
+          res.status(404).json({ error: "Project not found" });
+          return;
+        }
+        internalProjectId = project.id; // ✅ Get internal UUID
+      }
+
       const existingFile = await prisma.file.findFirst({
-        where: { name, type, roomId, projectId, userId: firebaseUid },
+        where: {
+          name,
+          type,
+          roomId: internalRoomId, // ✅ Use internal UUID
+          projectId: internalProjectId, // ✅ Use internal UUID
+          userId: firebaseUid,
+        },
       });
 
       if (existingFile) {
@@ -86,8 +120,8 @@ class FileController {
           fileId: await generateUniqueId("FL", "file"),
           name,
           content: SAMPLE_CODES[type as keyof typeof SAMPLE_CODES],
-          roomId,
-          projectId,
+          roomId: internalRoomId, // ✅ Use internal UUID
+          projectId: internalProjectId, // ✅ Use internal UUID
           userId: firebaseUid,
         },
         select: {

@@ -71,7 +71,7 @@ model Message {
   roomId String
   room   Room   @relation(fields: [roomId], references: [id], map: "Message_roomId_fkey", onDelete: Cascade)
 
-  @@index([roomId], map: "Message_roomId_fkey")
+  @@index([roomId], map: "Message_roomId_index")
 }
 
 model File {

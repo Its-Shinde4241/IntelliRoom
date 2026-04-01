@@ -2,10 +2,11 @@ import { create } from "zustand";
 import { api } from "../lib/axiosInstance"; // Update this path to match your axios file location
 
 export interface File {
-  id: string;
+  fileId: string;
   name: string;
   type: string;
   content: string;
+  createdBy?: string;
   roomId?: string;
   projectId?: string;
   createdAt?: string;
@@ -20,7 +21,7 @@ export interface CreateFileData {
 }
 
 export interface UpdateFileData {
-  id: string;
+  fileId: string;
   name?: string;
   type?: string;
   content?: string;
@@ -69,10 +70,10 @@ const useFileStore = create<FileState>((set, get) => ({
 
       // Also update the file in the files array if it exists
       set((state) => ({
-        files: state.files.map(f => f.id === fileId ? file as File : f)
+        files: state.files.map(f => f.fileId === fileId ? file : f)
       }));
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to fetch file";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch file";
       set({
         error: errorMessage,
         loading: false
@@ -93,8 +94,8 @@ const useFileStore = create<FileState>((set, get) => ({
         files,
         loading: false
       });
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to fetch room files";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch room files";
       set({
         error: errorMessage,
         loading: false
@@ -113,8 +114,8 @@ const useFileStore = create<FileState>((set, get) => ({
         files,
         loading: false
       });
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to fetch project files";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch project files";
       set({
         error: errorMessage,
         loading: false
@@ -134,9 +135,9 @@ const useFileStore = create<FileState>((set, get) => ({
         loading: false
       }));
 
-      return newFile.id;
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to create file";
+      return newFile.fileId;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create file";
       set({
         error: errorMessage,
         loading: false
@@ -148,16 +149,16 @@ const useFileStore = create<FileState>((set, get) => ({
   updateFile: async (fileData: UpdateFileData) => {
     set({ loading: true, error: null });
     try {
-      const response = await api.put(`/files/${fileData.id}`, { name: fileData.name, type: fileData.type, content: fileData.content, roomId: fileData.roomId, projectId: fileData.projectId });
+      const response = await api.put(`/files/${fileData.fileId}`, { name: fileData.name, type: fileData.type, content: fileData.content, roomId: fileData.roomId, projectId: fileData.projectId });
       const updatedFile = response.data as File;
 
       set((state) => ({
-        files: state.files.map(f => f.id === updatedFile.id ? updatedFile : f),
-        activeFile: state.activeFile?.id === updatedFile.id ? updatedFile : state.activeFile,
+        files: state.files.map(f => f.fileId === updatedFile.fileId ? updatedFile : f),
+        activeFile: state.activeFile?.fileId === updatedFile.fileId ? updatedFile : state.activeFile,
         loading: false
       }));
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to update file";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update file";
       set({
         error: errorMessage,
         loading: false
@@ -168,9 +169,9 @@ const useFileStore = create<FileState>((set, get) => ({
 
   updateFileName: async (fileId: string, newName: string) => {
     const currentFile = get().activeFile;
-    if (!currentFile || currentFile.id !== fileId) {
+    if (!currentFile || currentFile.fileId !== fileId) {
       // Try to find file in files array
-      const fileInArray = get().files.find(f => f.id === fileId);
+      const fileInArray = get().files.find(f => f.fileId === fileId);
       if (!fileInArray) {
         set({ error: "File not found" });
         return;
@@ -178,7 +179,7 @@ const useFileStore = create<FileState>((set, get) => ({
     }
 
     await get().updateFile({
-      id: fileId,
+      fileId: fileId,
       name: newName
     });
   },
@@ -187,7 +188,7 @@ const useFileStore = create<FileState>((set, get) => ({
     const currentFile = get().activeFile;
     const originalFiles = get().files;
 
-    if (currentFile && currentFile.id === fileId) {
+    if (currentFile && currentFile.fileId === fileId) {
       set({
         activeFile: { ...currentFile, content }
       });
@@ -196,19 +197,20 @@ const useFileStore = create<FileState>((set, get) => ({
     // Also update in files array
     set((state) => ({
       files: state.files.map(f =>
-        f.id === fileId ? { ...f, content } : f
+        f.fileId === fileId ? { ...f, content } : f
       )
     }));
 
     try {
       await get().updateFile({
-        id: fileId,
+        fileId: fileId,
         content
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Revert optimistic updates on error
-      console.error("Failed to update file content:", error.message);
-      if (currentFile && currentFile.id === fileId) {
+      const errorMsg = error instanceof Error ? error.message : "Failed to update";
+      console.error("Failed to update file content:", errorMsg);
+      if (currentFile && currentFile.fileId === fileId) {
         set({
           activeFile: currentFile,
           files: originalFiles
@@ -224,12 +226,12 @@ const useFileStore = create<FileState>((set, get) => ({
       await api.delete(`/files/${fileId}`);
 
       set((state) => ({
-        files: state.files.filter(f => f.id !== fileId),
-        activeFile: state.activeFile?.id === fileId ? null : state.activeFile,
+        files: state.files.filter(f => f.fileId !== fileId),
+        activeFile: state.activeFile?.fileId === fileId ? null : state.activeFile,
         loading: false
       }));
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || "Failed to delete file";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete file";
       set({
         error: errorMessage,
         loading: false

@@ -8,7 +8,8 @@ import useCodeStore from "@/store/codeStore";
 import useFileStore from "@/store/fileStore";
 import { Separator } from "@radix-ui/react-separator";
 import Terminal from "@/components/Terminal";
-import Header, { languages } from "../components/Header-comp";
+import Header from "../components/Header-comp";
+import { languages } from "../components/header-constants";
 import { useTheme } from "@/components/theme-provider";
 
 export default function FilePage() {
@@ -34,6 +35,7 @@ export default function FilePage() {
   const [position, setPosition] = useState({ line: 1, column: 1 });
   const [charCount, setCharCount] = useState(0);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const layoutTimeoutRef = useRef<NodeJS.Timeout>(null);
@@ -42,7 +44,7 @@ export default function FilePage() {
     if (fileId) {
       try {
         getFile(fileId);
-      } catch (error) {
+      } catch {
         navigate("/");
         setEditorValue("");
         toast.error("Error loading file");
@@ -124,7 +126,6 @@ export default function FilePage() {
     editor.onKeyDown((e) => {
       if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
         e.preventDefault();
-        handleSave();
       }
     });
     editor.onDidChangeCursorPosition((e) =>
@@ -158,7 +159,7 @@ export default function FilePage() {
 
   const editorLanguage = useMemo(() => {
     return activeFile ? getMonacoLanguage(activeFile.type) : "plaintext";
-  }, [activeFile?.type, getMonacoLanguage]);
+  }, [activeFile, getMonacoLanguage]);
 
   const handleCodeChange = useCallback((value: string | undefined) => {
     setEditorValue(value || "");
@@ -184,14 +185,15 @@ export default function FilePage() {
         if (terminalRef.current)
           terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
       }, 300);
-    } catch (error: any) {
-      toast.error(error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      toast.error(errorMessage);
     }
   }, [activeFile, getLangIdFromType, stdin, runCode, isTerminalOpen, editorValue]);
 
   const handleSave = useCallback(async () => {
     if (!activeFile) return;
-    updateFileContent(activeFile.id, editorValue);
+    updateFileContent(activeFile.fileId, editorValue);
     toast.success("File saved!", {
       duration: 1000,
       style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -255,7 +257,7 @@ export default function FilePage() {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 overflow-hidden">
             <Editor
-              key={activeFile?.id}
+              key={activeFile?.fileId}
               theme={mode}
               language={editorLanguage}
               value={editorValue}

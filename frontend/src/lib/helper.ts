@@ -15,8 +15,8 @@ export async function reauthenticate(email: string, password: string) {
     }
 }
 
-export function getFirebaseErrorMessage(error: any): string {
-    const code = error.code || "";
+export function getFirebaseErrorMessage(error: unknown): string {
+    const code = (error as { code?: string }).code || "";
 
     const errorMap: Record<string, string> = {
         "auth/email-already-in-use": "Email is already in use",

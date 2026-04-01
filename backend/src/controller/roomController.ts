@@ -46,7 +46,7 @@ class RoomController {
       });
 
       res.status(200).json({
-        userCode: user.userId,
+        userId: user.userId,
         rooms: result.map((room) => ({
           roomId: room.roomId,
           name: room.name,
@@ -64,7 +64,7 @@ class RoomController {
   public async getRoom(req: Request, res: Response): Promise<void> {
     try {
       const firebaseUid = req.user?.uid;
-      const roomId = req.params.id;
+      const { roomId } = req.params;
       const result = await prisma.room.findUnique({
         where: { roomId: roomId },
         include: {
@@ -193,12 +193,26 @@ class RoomController {
   public async deleteRoom(req: Request, res: Response): Promise<void> {
     try {
       const firebaseUid = req.user?.uid;
-      const roomId = req.params.id;
+      const { roomId } = req.params;
+
+      // Lookup room by roomId (business code) to verify ownership
+      const room = await prisma.room.findUnique({
+        where: { roomId: roomId },
+      });
+
+      if (!room) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      // Verify ownership
+      if (room.userId !== firebaseUid) {
+        res.status(403).json({ error: "Unauthorized" });
+        return;
+      }
+
       await prisma.room.delete({
-        where: {
-          id: roomId,
-          userId: firebaseUid,
-        },
+        where: { id: room.id }, // Delete by internal UUID
       });
       res.status(204).send();
     } catch (error) {
@@ -336,7 +350,7 @@ class RoomController {
         name: room.name,
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
-        currentUserCode: currentUser.userId,
+        currentUserId: currentUser.userId,
         participants: room.participants.map((p) => ({
           userId: p.user.userId,
           name: p.user.name,
@@ -353,20 +367,45 @@ class RoomController {
     try {
       const userId = req.user?.uid;
       const { roomId } = req.params;
+
+      // ✅ Lookup room by business code to get internal UUID
+      const room = await prisma.room.findUnique({
+        where: { roomId: roomId },
+        include: {
+          user: {
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!room) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
       const result = await prisma.file.findMany({
         where: {
-          roomId: roomId,
+          roomId: room.id, // ✅ Use internal UUID, not business code
           userId: userId,
         },
         select: {
           fileId: true,
           name: true,
           type: true,
+          content: true,
           createdAt: true,
           updatedAt: true,
         },
       });
-      res.status(200).json(result);
+
+      // Map to File interface with roomId and createdBy
+      res.status(200).json(
+        result.map((file) => ({
+          ...file,
+          roomId: room.roomId,
+          createdBy: room.user.userId,
+        })),
+      );
     } catch (error: any) {
       RoomController.handleError(res, error, "Failed to fetch room files");
     }

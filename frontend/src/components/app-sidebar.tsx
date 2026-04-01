@@ -92,7 +92,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SearchRoomDialog />
           </SidebarMenuItem>
           <SidebarMenuItem key="newProject">
-            <NewProjectPopover onCreateProject={createProject} />
+            <NewProjectPopover onCreateProject={async (projectName) => {
+              await createProject(projectName);
+            }} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -101,7 +103,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent style={{ scrollbarWidth: "none" }}>
         <NavRooms
           // rooms={rooms}
-          activeFileId={activeFile?.id as string}
+          activeFileId={activeFile?.fileId as string}
           onAddFile={createFile}
           onDeleteFile={deleteFile}
           onRenameFile={updateFileName}

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { SidebarMenuButton } from "./ui/sidebar";
 
 interface NewProjectPopoverProps {
-    onCreateProject: (projectName: string) => Promise<any>;
+    onCreateProject: (projectName: string) => Promise<void>;
     trigger?: React.ReactNode;
 }
 

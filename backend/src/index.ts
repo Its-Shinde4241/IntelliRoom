@@ -14,14 +14,16 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-app.use(cors({
-    origin: "http://localhost:5173", credentials: true
-}))
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.get("/api", (req, res) => {
-    res.send("on intelliroom backend api");
-})
-
+  res.send("on intelliroom backend api");
+});
 
 app.use("/api/auth", Authrouter);
 app.use("/api/rooms", authenticate, roomRouter);
@@ -31,5 +33,7 @@ app.use("/api/agent", authenticate, AgentRouter);
 
 const PORT = 3001;
 server.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${process.env.PORT || PORT}`);
+  console.log(
+    `🚀 Server is running on http://localhost:${process.env.PORT || PORT}`,
+  );
 });
