@@ -1,42 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
 
 model User {
-  id        String    @id
-  name      String
-  email     String    @unique(map: "User_email_key")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now()) @updatedAt
-  rooms     Room[]
-  projects  Project[]
-  messages  Message[]
-  files     File[]
+  id               String            @id
+  userId           String            @unique(map: "User_userId_key")
+  name             String
+  email            String            @unique(map: "User_email_key")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now()) @updatedAt
+  rooms            Room[]
+  projects         Project[]
+  messages         Message[]
+  files            File[]
+  roomParticipants RoomParticipant[]
 }
 
 model Room {
   id        String   @id @default(uuid())
+  roomId    String   @unique(map: "Room_roomId_key")
   name      String
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], map: "Room_userId_fkey", onDelete: Cascade)
 
-  files    File[]
-  messages Message[]
+  files        File[]
+  messages     Message[]
+  participants RoomParticipant[]
 
   @@unique([name, userId], map: "room_name_userId_key")
 }
 
+model RoomParticipant {
+  id            String   @id @default(uuid())
+  participantId String   @unique(map: "RoomParticipant_participantId_key")
+  roomId        String
+  userId        String
+  joinedAt      DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+}
+
 model Message {
   id        String   @id @default(uuid())
+  messageId String   @unique(map: "Message_messageId_key")
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,6 +76,7 @@ model Message {
 
 model File {
   id        String   @id @default(uuid())
+  fileId    String   @unique(map: "File_fileId_key")
   roomId    String?
   projectId String?
   userId    String
@@ -69,6 +95,7 @@ model File {
 
 model Project {
   id        String   @id @default(uuid())
+  projectId String   @unique(map: "Project_projectId_key")
   userId    String
   name      String
   createdAt DateTime @default(now())

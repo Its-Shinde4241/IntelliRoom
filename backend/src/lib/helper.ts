@@ -1,16 +1,17 @@
+import { prisma } from "../db/prisma";
 function escapeForPrompt(input: string): string {
-    return input
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"')
-        .replace(/\r/g, "\\r")
-        .replace(/\n/g, "\\n")
-        .replace(/\t/g, "\\t");
+  return input
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
 }
 
 export function createImprovedPrompt(userPrompt: string): string {
-    const safe = escapeForPrompt(userPrompt);
+  const safe = escapeForPrompt(userPrompt);
 
-    return `
+  return `
 Create a complete, functional, and visually appealing website based on this description: "${safe}"
             
 CRITICAL REQUIREMENTS:
@@ -81,15 +82,81 @@ Generate a website that looks professional, modern, and fully functional. The de
 }
 
 export function cleanAIResponse(response: string): string {
-    // remove code fences and leading/trailing stray text, then extract the first {...} block
-    let r = response.replace(/```(?:json|html|css|js|javascript)?\s*/g, "");
-    r = r.replace(/```/g, "").trim();
+  // remove code fences and leading/trailing stray text, then extract the first {...} block
+  let r = response.replace(/```(?:json|html|css|js|javascript)?\s*/g, "");
+  r = r.replace(/```/g, "").trim();
 
-    const first = r.indexOf("{");
-    const last = r.lastIndexOf("}");
-    if (first !== -1 && last !== -1 && first < last) {
-        r = r.substring(first, last + 1);
+  const first = r.indexOf("{");
+  const last = r.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && first < last) {
+    r = r.substring(first, last + 1);
+  }
+
+  return r;
+}
+const codeExists = async (ID: string, table: string): Promise<boolean> => {
+  const field = ID.substring(0, ID.length - 6).toLowerCase() + "Id"; // userId, roomId, etc.
+
+  switch (table) {
+    case "user":
+      return !!(await prisma.user.findUnique({ where: { userId: ID } }));
+    case "room":
+      return !!(await prisma.room.findUnique({ where: { roomId: ID } }));
+    case "message":
+      return !!(await prisma.message.findUnique({
+        where: { messageId: ID },
+      }));
+    case "file":
+      return !!(await prisma.file.findUnique({ where: { fileId: ID } }));
+    case "project":
+      return !!(await prisma.project.findUnique({
+        where: { projectId: ID },
+      }));
+    case "member":
+      return !!(await prisma.roomParticipant.findUnique({
+        where: { participantId: ID },
+      }));
+    default:
+      return false;
+  }
+};
+
+// Generate UNIQUE code with retry logic
+export const generateUniqueId = async (
+  prefix: string,
+  table: string,
+): Promise<string> => {
+  let code: string;
+  let attempts = 0;
+  const maxAttempts = 100; // Retry up to 100 times
+
+  do {
+    code = generateId(prefix);
+    const exists = await codeExists(code, table);
+
+    if (!exists) {
+      return code; // ✅ Unique code found
     }
 
-    return r;
-}
+    attempts++;
+  } while (attempts < maxAttempts);
+
+  throw new Error(
+    `Failed to generate unique code for ${table} after ${maxAttempts} attempts`,
+  );
+};
+export const generateId = (prefix: string): string => {
+  const chars = "0123456789";
+  let code = prefix.toUpperCase(); // RM, USR, MS, FL, PR
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code; // Returns: RM123ABC, USR456XYZ, etc.
+};
+
+// Usage:
+// generateId('RM') → RM123ABC
+// generateId('USR') → USR456XYZ
+// generateId('MS') → MS789DEF
+// generateId('FL') → FLGHIJKL
+// generateId('PR') → PRMNO123

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
+import { generateUniqueId } from "../lib/helper";
 
 class ProjectController {
     private static handleError(res: Response, error: any, message: string): void {
@@ -9,39 +10,75 @@ class ProjectController {
 
     public async getProjectFiles(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.user?.uid;
+            const firebaseUid = req.user?.uid;
             const { projectId } = req.params;
+            
+            // Lookup project by projectId (business code) to get internal id
+            const project = await prisma.project.findUnique({
+                where: { projectId },
+            });
+            
+            if (!project) {
+                res.status(404).json({ error: "Project not found" });
+                return;
+            }
+            
+            // Verify ownership
+            if (project.userId !== firebaseUid) {
+                res.status(403).json({ error: "Unauthorized" });
+                return;
+            }
+            
             const result = await prisma.file.findMany({
                 where: {
-                    projectId,
-                    userId
+                    projectId: project.id,
+                    userId: firebaseUid
+                },
+                select: {
+                    fileId: true,
+                    name: true,
+                    type: true,
+                    createdAt: true,
+                    updatedAt: true,
                 }
             });
             res.status(200).json(result);
-        } catch (error) {
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to fetch project files");
         }
     }
 
     public async createProjectWithFiles(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.user?.uid;
-            if (!userId) {
+            const firebaseUid = req.user?.uid;
+            if (!firebaseUid) {
                 res.status(401).json({ error: "Unauthorized" });
                 return;
             }
             const { projectName } = req.body;
             const existingProject = await prisma.project.findFirst({
-                where: { name: projectName, userId }
+                where: { name: projectName, userId: firebaseUid }
             });
             if (existingProject) {
                 res.status(409).json({ error: "Project with this name already exists" });
                 return;
             }
+
+            // Fetch user to get their userId
+            const user = await prisma.user.findUnique({
+                where: { id: firebaseUid },
+            });
+
+            if (!user) {
+                res.status(401).json({ error: "User not found" });
+                return;
+            }
+
             const project = await prisma.project.create({
                 data: {
+                    projectId: await generateUniqueId("PR", "project"),
                     name: projectName,
-                    userId
+                    userId: firebaseUid
                 }
             });
             const defaultFiles = [
@@ -58,7 +95,7 @@ class ProjectController {
 </head>
 <body>
   <h1>Hello from ${projectName}!</h1>
-  <script src="script.js"></script>
+  <script src="script.js"><\\/script>
 </body>
 </html>`,
                 },
@@ -81,88 +118,193 @@ class ProjectController {
                 return;
             }
             await prisma.file.createMany({
-                data: defaultFiles.map((file) => ({
-                    userId: userId,
-                    projectId: project.id,
-                    ...file,
-                })),
+                data: await Promise.all(defaultFiles.map((file) =>
+                    generateUniqueId("FL", "file").then(fileId => ({
+                        fileId,
+                        userId: firebaseUid,
+                        projectId: project.id,
+                        ...file,
+                    }))
+                )),
             })
-            res.status(201).json(project);
-        } catch (error) {
+            res.status(201).json({
+                projectId: project.projectId,
+                name: project.name,
+                createdBy: user.userId,
+                createdAt: project.createdAt,
+                updatedAt: project.updatedAt,
+            });
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to create project");
         }
     }
 
     public async getUserProjects(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.user?.uid;
-            const projects = await prisma.project.findMany({
-                where: { userId: userId },
-                include: { files: true }
+            const firebaseUid = req.user?.uid;
+            
+            // Fetch user to get their userId
+            const user = await prisma.user.findUnique({
+                where: { id: firebaseUid },
             });
-            res.status(200).json(projects);
-        } catch (error) {
+
+            if (!user) {
+                res.status(401).json({ error: "User not found" });
+                return;
+            }
+
+            const projects = await prisma.project.findMany({
+                where: { userId: firebaseUid },
+                include: {
+                    files: {
+                        select: {
+                            fileId: true,
+                            name: true,
+                            type: true,
+                        }
+                    },
+                    user: {
+                        select: { userId: true }
+                    }
+                }
+            });
+            
+            res.status(200).json({
+                userCode: user.userId,
+                projects: projects.map((project) => ({
+                    projectId: project.projectId,
+                    name: project.name,
+                    createdBy: project.user.userId,
+                    createdAt: project.createdAt,
+                    updatedAt: project.updatedAt,
+                    files: project.files,
+                })),
+            });
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to fetch user projects");
         }
     }
 
     public async updateFile(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.user?.uid;
+            const firebaseUid = req.user?.uid;
             const { projectId, fileId } = req.params;
-            const updates = req.body;
+            const { name, content, type } = req.body;
 
-            const project = await prisma.project.findFirst({
-                where: { id: projectId, userId }
+            // Lookup project by projectId (business code) to get internal id
+            const project = await prisma.project.findUnique({
+                where: { projectId },
             });
 
             if (!project) {
-                res.status(404).json({ error: "Project not found or access denied" });
+                res.status(404).json({ error: "Project not found" });
+                return;
+            }
+            
+            // Verify ownership
+            if (project.userId !== firebaseUid) {
+                res.status(403).json({ error: "Unauthorized" });
                 return;
             }
 
             const updatedFile = await prisma.file.update({
                 where: {
-                    id: fileId,
-                    projectId: projectId,
-                    userId: userId
+                    fileId: fileId,
+                    projectId: project.id,
+                    userId: firebaseUid
                 },
-                data: updates,
+                data: { name, content, type },
+                select: {
+                    fileId: true,
+                    name: true,
+                    type: true,
+                    createdAt: true,
+                    updatedAt: true,
+                }
             });
 
             res.status(200).json(updatedFile);
-        } catch (error) {
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to update file");
         }
     }
 
     public async updateProjectName(req: Request, res: Response): Promise<void> {
         try {
-            const userId = req.user?.uid;
+            const firebaseUid = req.user?.uid;
             const { projectId, projectName } = req.body;
+
+            // Lookup project by projectId (business code)
+            const projectToUpdate = await prisma.project.findUnique({
+                where: { projectId },
+                include: {
+                    user: {
+                        select: { userId: true }
+                    }
+                }
+            });
+            
+            if (!projectToUpdate) {
+                res.status(404).json({ error: "Project not found" });
+                return;
+            }
+            
+            // Verify ownership
+            if (projectToUpdate.userId !== firebaseUid) {
+                res.status(403).json({ error: "Unauthorized" });
+                return;
+            }
 
             const project = await prisma.project.update({
                 where: {
-                    id: projectId,
-                    userId: userId
+                    id: projectToUpdate.id
                 },
                 data: { name: projectName },
+                include: {
+                    user: {
+                        select: { userId: true }
+                    }
+                }
             });
 
-            res.status(200).json(project);
-        } catch (error) {
+            res.status(200).json({
+                projectId: project.projectId,
+                name: project.name,
+                createdBy: project.user.userId,
+                createdAt: project.createdAt,
+                updatedAt: project.updatedAt,
+            });
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to update project name");
         }
     }
 
     public async deleteProject(req: Request, res: Response): Promise<void> {
         try {
+            const firebaseUid = req.user?.uid;
             const { projectId } = req.params;
+            
+            // Lookup project by projectId (business code)
+            const project = await prisma.project.findUnique({
+                where: { projectId },
+            });
+            
+            if (!project) {
+                res.status(404).json({ error: "Project not found" });
+                return;
+            }
+            
+            // Verify ownership
+            if (project.userId !== firebaseUid) {
+                res.status(403).json({ error: "Unauthorized" });
+                return;
+            }
+            
             await prisma.project.delete({
-                where: { id: projectId },
+                where: { id: project.id },
             });
             res.status(204).send();
-        } catch (error) {
+        } catch (error: any) {
             ProjectController.handleError(res, error, "Failed to delete project");
         }
     }
