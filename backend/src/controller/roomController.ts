@@ -47,7 +47,7 @@ class RoomController {
 
       res.status(200).json({
         userId: user.userId,
-        rooms: result.map((room) => ({
+        rooms: result.map((room: any) => ({
           roomId: room.roomId,
           name: room.name,
           createdBy: room.user.userId,
@@ -352,7 +352,7 @@ class RoomController {
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
         currentUserId: currentUser.userId,
-        participants: room.participants.map((p) => ({
+        participants: room.participants.map((p: any) => ({
           userId: p.user.userId,
           name: p.user.name,
           email: p.user.email,
@@ -401,7 +401,7 @@ class RoomController {
 
       // Map to File interface with roomId and createdBy
       res.status(200).json(
-        result.map((file) => ({
+        result.map((file: any) => ({
           ...file,
           roomId: room.roomId,
           createdBy: room.user.userId,

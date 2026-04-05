@@ -57,7 +57,7 @@ class ProjectController {
       });
       
       // Add projectId and createdBy to each file
-      const filesWithMetadata = result.map(file => ({
+      const filesWithMetadata = result.map((file: any) => ({
         ...file,
         projectId: project.projectId,
         createdBy: user.userId,
@@ -203,7 +203,7 @@ class ProjectController {
 
       res.status(200).json({
         userCode: user.userId,
-        projects: projects.map((project) => ({
+        projects: projects.map((project: any) => ({
           projectId: project.projectId,
           name: project.name,
           createdBy: project.user.userId,
