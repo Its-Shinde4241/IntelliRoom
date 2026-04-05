@@ -1,6 +1,6 @@
 import express, { Response } from "express";
 import http from "http";
-// import { WebSocketServer } from "ws";
+import dotenv from "dotenv";
 
 import cors from "cors";
 import Authrouter from "./routes/authRoutes";
@@ -14,9 +14,15 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter((origin): origin is string => Boolean(origin));
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
