@@ -133,6 +133,7 @@ class RoomController {
           id: crypto.randomUUID(),
           roomId: await generateUniqueId("RM", "room"),
           name,
+          isPublic: false,
           password: hashedPassword,
           userId: firebaseUid,
         },
