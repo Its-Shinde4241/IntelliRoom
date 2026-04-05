@@ -15,14 +15,9 @@ const server = http.createServer(app);
 
 app.use(express.json());
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.FRONTEND_URL,
-].filter((origin): origin is string => Boolean(origin));
-
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: ["http://localhost:5173", "https://intelli-room.vercel.app"],
     credentials: true,
   }),
 );
