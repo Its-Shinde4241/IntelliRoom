@@ -17,7 +17,7 @@ import {
   Search,
   Grid,
   List,
-  Share2
+  Share2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,7 +39,7 @@ import { toast } from "sonner";
 
 // Import stores (default imports based on your store structure)
 import { useAuthStore } from "@/store/authStore";
-import useRoomStore from "@/store/roomStore";
+import useRoomStore, { type Room } from "@/store/roomStore";
 import useFileStore, { type File } from "@/store/fileStore";
 
 // Import components
@@ -62,14 +62,12 @@ export default function RoomPage() {
     updateRoom,
   } = useRoomStore();
 
-
-
   const {
     files,
     loading: fileLoading,
     getFilesByRoom,
     deleteFile,
-    createFile
+    createFile,
   } = useFileStore();
 
   // Local state
@@ -79,36 +77,40 @@ export default function RoomPage() {
     isOpen: boolean;
     id: string;
     name: string;
-  }>({ isOpen: false, id: '', name: '' });
+  }>({ isOpen: false, id: "", name: "" });
 
   // Get current room from the rooms array
-  const room = rooms.find((r: any) => r.id === roomId);
-
+  const room = rooms.find((r: Room) => r.roomId === roomId);
 
   const handleUpdateRoom = async (newRoomName: string) => {
     if (roomId && user) {
       await updateRoom(roomId, { name: newRoomName });
     }
-  }
-  const handleUpdateRoomwithPassword = async (newRoomName: string, newPassword: string) => {
+  };
+  const handleUpdateRoomwithPassword = async (
+    newRoomName: string,
+    newPassword: string,
+  ) => {
     if (roomId && user) {
       await updateRoom(roomId, { name: newRoomName, password: newPassword });
     }
-  }
+  };
 
   // Load data on mount
   useEffect(() => {
     if (roomId && user) {
-      getUserRooms(user.uid);
+      // getUserRooms(user.uid);
       getFilesByRoom(roomId);
     }
   }, [roomId, user, getUserRooms, getFilesByRoom]);
 
   // Filter files based on room and search
-  const roomFiles = files.filter((file: any) =>
-    file.roomId === roomId &&
-    file.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const roomFiles = files.filter(
+    (file: File) =>
+      file.roomId === roomId &&
+      file.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+  console.log("files:", files);
 
   // Handlers
   const handleFileClick = (fileId: string) => {
@@ -124,18 +126,18 @@ export default function RoomPage() {
     try {
       await deleteFile(deleteDialog.id);
       toast.success("File deleted successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete file");
     } finally {
-      setDeleteDialog({ isOpen: false, id: '', name: '' });
+      setDeleteDialog({ isOpen: false, id: "", name: "" });
     }
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -176,7 +178,9 @@ export default function RoomPage() {
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Room not found</h2>
-          <p className="text-muted-foreground">The room you're looking for doesn't exist or you don't have access.</p>
+          <p className="text-muted-foreground">
+            The room you're looking for doesn't exist or you don't have access.
+          </p>
           <Button onClick={() => navigate("/")} className="mt-4">
             Go Back Home
           </Button>
@@ -194,9 +198,9 @@ export default function RoomPage() {
 
       // Add the new file to the room store
       addFileToRoom(roomId, {
-        id: newFileId,
+        fileId: newFileId,
         name: fileName,
-        type: fileType
+        type: fileType,
       });
 
       // handleFileClick(newFileId);
@@ -292,9 +296,7 @@ export default function RoomPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <NewFilePopover
-              onCreateFile={handleCreateFile}
-            />
+            <NewFilePopover onCreateFile={handleCreateFile} />
           </div>
         </div>
       </div>
@@ -308,27 +310,28 @@ export default function RoomPage() {
             <p className="text-muted-foreground mb-6 max-w-md">
               {searchQuery
                 ? "No files match your search."
-                : "This room is empty. Create your first file to get started."
-              }
+                : "This room is empty. Create your first file to get started."}
             </p>
             <div className="flex gap-2">
-              <NewFilePopover
-                onCreateFile={handleCreateFile}
-              />
+              <NewFilePopover onCreateFile={handleCreateFile} />
             </div>
           </div>
         ) : (
-          <div className={viewMode === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            : "space-y-2"
-          }>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                : "space-y-2"
+            }
+          >
             {/* Files */}
             {roomFiles.map((file: File) => (
               <Card
-                key={file.id}
-                className={`cursor-pointer hover:shadow-md transition-all ${viewMode === "list" ? "flex items-center p-3" : ""
-                  }`}
-                onClick={() => handleFileClick(file.id)}
+                key={file.fileId}
+                className={`cursor-pointer hover:shadow-md transition-all ${
+                  viewMode === "list" ? "flex items-center p-3" : ""
+                }`}
+                onClick={() => handleFileClick(file.fileId)}
               >
                 {viewMode === "grid" ? (
                   <>
@@ -336,23 +339,38 @@ export default function RoomPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {getFileIcon()}
-                          <Badge variant="outline" className="text-xs">File</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            File
+                          </Badge>
                         </div>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleFileClick(file.id)}>
-                              <Eye className="h-4 w-4 mr-2" />Open
+                            <DropdownMenuItem
+                              onClick={() => handleFileClick(file.fileId)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Open
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-red-600"
-                              onClick={(e) => openDeleteDialog(file.id, file.name, e)}
+                              onClick={(e) =>
+                                openDeleteDialog(file.fileId, file.name, e)
+                              }
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />Delete
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -361,8 +379,15 @@ export default function RoomPage() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{file.type || 'Plain Text'}</span>
-                        <span>Updated {formatDate(file.updatedAt || file.createdAt || new Date().toISOString())}</span>
+                        <span>{file.type || "Plain Text"}</span>
+                        <span>
+                          Updated{" "}
+                          {formatDate(
+                            file.updatedAt ||
+                              file.createdAt ||
+                              new Date().toISOString(),
+                          )}
+                        </span>
                       </div>
                     </CardContent>
                   </>
@@ -373,28 +398,51 @@ export default function RoomPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{file.name}</span>
-                          <Badge variant="outline" className="text-xs">File</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            File
+                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{file.type || 'Plain Text'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {file.type || "Plain Text"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{formatDate(file.updatedAt || file.createdAt || new Date().toISOString())}</span>
+                      <span>
+                        {formatDate(
+                          file.updatedAt ||
+                            file.createdAt ||
+                            new Date().toISOString(),
+                        )}
+                      </span>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleFileClick(file.id)}>
-                            <Eye className="h-4 w-4 mr-2" />Open
+                          <DropdownMenuItem
+                            onClick={() => handleFileClick(file.fileId)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Open
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600"
-                            onClick={(e) => openDeleteDialog(file.id, file.name, e)}
+                            onClick={(e) =>
+                              openDeleteDialog(file.fileId, file.name, e)
+                            }
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />Delete
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -408,14 +456,18 @@ export default function RoomPage() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) =>
-        setDeleteDialog(prev => ({ ...prev, isOpen: open }))
-      }>
+      <AlertDialog
+        open={deleteDialog.isOpen}
+        onOpenChange={(open) =>
+          setDeleteDialog((prev) => ({ ...prev, isOpen: open }))
+        }
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete File?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deleteDialog.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deleteDialog.name}"? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

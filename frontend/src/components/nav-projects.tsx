@@ -98,11 +98,7 @@ export default function NavProjects({
     fileId: string,
     newName: string
   ) => {
-    try {
-      await onRenameFile?.(projectId, fileId, newName);
-    } catch (error) {
-      throw error; // Let the popover handle the error
-    }
+    await onRenameFile?.(projectId, fileId, newName);
   };
 
   const handleDeleteFile = (projectId: string, fileId: string) => {
@@ -112,15 +108,11 @@ export default function NavProjects({
   };
 
   const handleRenameProject = async (projectId: string, newName: string) => {
-    try {
-      await onRenameProject?.(projectId, newName);
-    } catch (error) {
-      throw error; // Let the popover handle the error
-    }
+    await onRenameProject?.(projectId, newName);
   };
 
   const handleRunProject = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find(p => p.projectId === projectId);
     toast.success(`Running "${project?.name || 'project'}" in browser...`, {
       duration: 2000,
       style: { width: "auto", minWidth: "fit-content", padding: 6 },
@@ -165,18 +157,18 @@ export default function NavProjects({
         <SidebarGroupLabel>Web Projects</SidebarGroupLabel>
         <SidebarMenu>
           {projects.map((project) => {
-            const ProjectIcon = getProjectIcon(project.id);
+            const ProjectIcon = getProjectIcon(project.projectId);
 
-            const isActiveProject = project.id === currentProjectId;
+            const isActiveProject = project.projectId === currentProjectId;
 
             return (
               <Collapsible
-                key={project.id}
+                key={project.projectId}
                 asChild
                 defaultOpen={project.isActive || isActiveProject}
-                open={openProjects.has(project.id)}
+                open={openProjects.has(project.projectId)}
                 className="group/collapsible"
-                onOpenChange={(isOpen) => handleProjectToggle(project.id, isOpen)}
+                onOpenChange={(isOpen) => handleProjectToggle(project.projectId, isOpen)}
               >
                 <SidebarMenuItem>
                   <ContextMenu>
@@ -186,7 +178,7 @@ export default function NavProjects({
                           <SidebarMenuButton
                             tooltip={project.name}
                             className={`${isActiveProject ? 'bg-accent text-accent-foreground font-medium' : ''}`}
-                            onClick={() => handleProjectClick(project.id)}
+                            onClick={() => handleProjectClick(project.projectId)}
                           >
                             <ProjectIcon className="h-4 w-4" />
                             <span>{project.name}</span>
@@ -197,17 +189,17 @@ export default function NavProjects({
                     </ContextMenuTrigger>
                     <ContextMenuContent>
                       <ContextMenuItem
-                        onClick={() => handleRunProject(project.id)}
+                        onClick={() => handleRunProject(project.projectId)}
                       >
                         <Play className="h-4 w-4 mr-2" />
                         Run Project
                       </ContextMenuItem>
                       <RenameProjectPopover
                         projectName={project.name}
-                        onRename={(newName) => handleRenameProject(project.id, newName)}
+                        onRename={(newName) => handleRenameProject(project.projectId, newName)}
                       />
                       <ContextMenuItem
-                        onClick={() => setProjectToDelete({ id: project.id, name: project.name })}
+                        onClick={() => setProjectToDelete({ id: project.projectId, name: project.name })}
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -219,16 +211,16 @@ export default function NavProjects({
                     <SidebarMenuSub>
                       {project.files.map((file: WebDevFile) => {
                         const FileTypeIcon = getFileIcon(file.type);
-                        const isActiveFile = project.id === currentProjectId && file.type === currentFileType;
+                        const isActiveFile = project.projectId === currentProjectId && file.type === currentFileType;
 
                         return (
-                          <SidebarMenuSubItem key={file.id}>
+                          <SidebarMenuSubItem key={file.fileId}>
                             <ContextMenu>
                               <ContextMenuTrigger asChild>
                                 <div className="flex items-center">
                                   <SidebarMenuSubButton
                                     onClick={() =>
-                                      handleFileClick(project.id, file.type)
+                                      handleFileClick(project.projectId, file.type)
                                     }
                                     className={`flex-1 ${isActiveFile ? 'bg-accent text-accent-foreground font-medium' : ''}`}
                                   >
@@ -241,7 +233,7 @@ export default function NavProjects({
                                 <RenameFilePopover
                                   fileName={file.name}
                                   onRename={(newName) =>
-                                    handleRenameFile(project.id, file.id, newName)
+                                    handleRenameFile(project.projectId, file.fileId, newName)
                                   }
                                   trigger={
                                     <ContextMenuItem
@@ -257,7 +249,7 @@ export default function NavProjects({
                                 />
                                 <ContextMenuItem
                                   onClick={() =>
-                                    handleDeleteFile(project.id, file.id)
+                                    handleDeleteFile(project.projectId, file.fileId)
                                   }
                                   className="text-destructive focus:text-destructive"
                                 >

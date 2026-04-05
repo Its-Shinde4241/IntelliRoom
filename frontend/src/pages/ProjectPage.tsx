@@ -27,7 +27,11 @@ import AgentPopover from "@/components/AgentPopover";
 
 // Import stores
 import { useAuthStore } from "@/store/authStore";
-import { useProjectStore } from "@/store/projectStore";
+import {
+  useProjectStore,
+  type Project,
+  type WebDevFile,
+} from "@/store/projectStore";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PreviewComponent from "@/components/Preview-comp";
@@ -45,7 +49,7 @@ export default function ProjectPage() {
     projects,
     loading: projectLoading,
     error: projectError,
-    fetchUserProjects,
+    // fetchUserProjects,
     getProjectFiles,
     runProject,
   } = useProjectStore();
@@ -63,74 +67,26 @@ export default function ProjectPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Get current project from the projects array
-  const project = projects.find((p: any) => p.id === projectId);
+  const project = projects.find((p: Project) => p.projectId === projectId);
 
-  // Load data on mount
-  useEffect(() => {
-    if (projectId && user) {
-      fetchUserProjects();
-      getProjectFiles(projectId);
-    }
-  }, [projectId, user, fetchUserProjects, getProjectFiles]);
-
-  // Sync file contents with local state
-  useEffect(() => {
-    if (project?.files) {
-      const html = project.files.find((f: any) => f.type === "html");
-      const css = project.files.find((f: any) => f.type === "css");
-      const js = project.files.find((f: any) => f.type === "js");
-
-      setHtmlContent(html?.content || getDefaultHtml());
-      setCssContent(css?.content || getDefaultCss());
-      setJsContent(js?.content || getDefaultJs());
-      setHasUnsavedChanges(false);
-    }
-  }, [project?.files]);
-
-  // Get files by type
-  const htmlFile = project?.files.find((f: any) => f.type === "html");
-  const cssFile = project?.files.find((f: any) => f.type === "css");
-  const jsFile = project?.files.find((f: any) => f.type === "js");
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const handleRefreshPreview = () => {
-    // Force iframe refresh by temporarily changing the srcDoc
-    setHtmlContent(prev => prev);
-    toast.success("Preview refreshed", { duration: 1000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
-  };
-
-  const handleRunInNewWindow = () => {
-    if (project) {
-      runProject(project.id);
-      toast.success("Opening project in new window", { duration: 1000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
-    }
-  };
-
-  // Default content functions
-  const getDefaultHtml = () => `<!DOCTYPE html>
+  // Default content templates
+  const DEFAULT_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${project?.name || 'My Project'}</title>
+    <title>My Project</title>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to ${project?.name || 'My Project'}!</h1>
+        <h1>Welcome to ${project?.name || "My Project"}!</h1>
         <p>Start building your amazing project!</p>
         <button onclick="changeColor()">Click me!</button>
     </div>
 </body>
 </html>`;
 
-  const getDefaultCss = () => `/* Add your styles here */
+  const DEFAULT_CSS = `/* Add your styles here */
 
 body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -182,8 +138,8 @@ button:hover {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }`;
 
-  const getDefaultJs = () => `// Add your JavaScript here
-console.log("Hello World from ${project?.name || 'My Project'}!");
+  const DEFAULT_JS = `// Add your JavaScript here
+console.log("Hello World from My Project!");
 
 // Example: Add some interactivity
 document.addEventListener("DOMContentLoaded", function() {
@@ -227,7 +183,59 @@ function animateElements() {
     });
 }`;
 
+  // Load data on mount
+  useEffect(() => {
+    if (projectId && user) {
+      // fetchUserProjects();
+      getProjectFiles(projectId);
+    }
+  }, [projectId, user, getProjectFiles]);
 
+  // Sync file contents with local state
+  useEffect(() => {
+    if (project?.files) {
+      const html = project.files.find((f: WebDevFile) => f.type === "html");
+      const css = project.files.find((f: WebDevFile) => f.type === "css");
+      const js = project.files.find((f: WebDevFile) => f.type === "js");
+
+      setHtmlContent(html?.content || DEFAULT_HTML);
+      setCssContent(css?.content || DEFAULT_CSS);
+      setJsContent(js?.content || DEFAULT_JS);
+      setHasUnsavedChanges(false);
+    }
+  }, [project?.files, DEFAULT_HTML, DEFAULT_CSS, DEFAULT_JS]);
+
+  // Get files by type
+  const htmlFile = project?.files.find((f: WebDevFile) => f.type === "html");
+  const cssFile = project?.files.find((f: WebDevFile) => f.type === "css");
+  const jsFile = project?.files.find((f: WebDevFile) => f.type === "js");
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const handleRefreshPreview = () => {
+    // Force iframe refresh by temporarily changing the srcDoc
+    setHtmlContent((prev) => prev);
+    toast.success("Preview refreshed", {
+      duration: 1000,
+      style: { width: "auto", minWidth: "fit-content", padding: 10 },
+    });
+  };
+
+  const handleRunInNewWindow = () => {
+    if (project) {
+      runProject(project.projectId);
+      toast.success("Opening project in new window", {
+        duration: 1000,
+        style: { width: "auto", minWidth: "fit-content", padding: 10 },
+      });
+    }
+  };
 
   // Content change handlers
   const handleHtmlChange = (value: string | undefined) => {
@@ -246,88 +254,96 @@ function animateElements() {
   };
 
   // Handler for AI-generated files
-  const handleFilesGenerated = useCallback((files: { html: string; css: string; js: string }) => {
-    setHtmlContent(files.html);
-    setCssContent(files.css);
-    setJsContent(files.js);
-    setHasUnsavedChanges(true);
-  }, []);
+  const handleFilesGenerated = useCallback(
+    (files: { html: string; css: string; js: string }) => {
+      setHtmlContent(files.html);
+      setCssContent(files.css);
+      setJsContent(files.js);
+      setHasUnsavedChanges(true);
+    },
+    [],
+  );
 
   // Save functionality
-  const saveAllFiles = async () => {
-    if (!project || isSaving) return;
+  const saveAllFiles = useCallback(async () => {
+    if (!project) return;
 
     setIsSaving(true);
     try {
       const { updateProjectFile } = useProjectStore.getState();
 
       // Update or create HTML file
-      const htmlFile = project.files.find((f: any) => f.type === "html");
+      const htmlFile = project.files.find((f: WebDevFile) => f.type === "html");
       if (htmlFile) {
-        await updateProjectFile(project.id, htmlFile.id, { content: htmlContent });
+        await updateProjectFile(project.projectId, htmlFile.fileId, {
+          content: htmlContent,
+        });
       }
 
       // Update or create CSS file
-      const cssFile = project.files.find((f: any) => f.type === "css");
+      const cssFile = project.files.find((f: WebDevFile) => f.type === "css");
       if (cssFile) {
-        await updateProjectFile(project.id, cssFile.id, { content: cssContent });
+        await updateProjectFile(project.projectId, cssFile.fileId, {
+          content: cssContent,
+        });
       }
 
       // Update or create JS file
-      const jsFile = project.files.find((f: any) => f.type === "js");
+      const jsFile = project.files.find((f: WebDevFile) => f.type === "js");
       if (jsFile) {
-        await updateProjectFile(project.id, jsFile.id, { content: jsContent });
+        await updateProjectFile(project.projectId, jsFile.fileId, {
+          content: jsContent,
+        });
       }
 
       setHasUnsavedChanges(false);
-      toast.success("All files saved successfully!", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
+      toast.success("All files saved successfully!", {
+        duration: 2000,
+        style: { width: "auto", minWidth: "fit-content", padding: 10 },
+      });
     } catch (error) {
       toast.error("Failed to save files", { duration: 3000 });
       console.error("Save error:", error);
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [project, htmlContent, cssContent, jsContent]);
 
   // Keyboard shortcut for save (Ctrl+S)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         saveAllFiles();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [htmlContent, cssContent, jsContent, project]);
-
-
-
-
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [saveAllFiles]);
 
   // Memoized preview content generation for better performance
   const generatePreviewContent = useMemo(() => {
     if (!project) return "";
 
-    let content = htmlContent || getDefaultHtml();
+    let content = htmlContent || DEFAULT_HTML;
 
     // Remove external CSS link references and inject inline CSS
     if (cssContent) {
       // Remove external CSS link references
       content = content.replace(
         /<link[^>]*rel=["']stylesheet["'][^>]*href=["']styles\.css["'][^>]*>/gi,
-        ''
+        "",
       );
       content = content.replace(
         /<link[^>]*href=["']styles\.css["'][^>]*rel=["']stylesheet["'][^>]*>/gi,
-        ''
+        "",
       );
 
       // Inject CSS into HTML
       content = content.replace(
-        '</head>',
-        `<style>\n${cssContent}\n</style>\n</head>`
+        "</head>",
+        `<style>\n${cssContent}\n</style>\n</head>`,
       );
     }
 
@@ -336,18 +352,18 @@ function animateElements() {
       // Remove external JS script references
       content = content.replace(
         /<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi,
-        ''
+        "",
       );
 
       // Inject JS into HTML
       content = content.replace(
-        '</body>',
-        `<script>\n${jsContent}\n</script>\n</body>`
+        "</body>",
+        `<script>\n${jsContent}\n</script>\n</body>`,
       );
     }
 
     return content;
-  }, [project, htmlContent, cssContent, jsContent]);
+  }, [project, htmlContent, cssContent, jsContent, DEFAULT_HTML]);
 
   // Update preview content when generated content changes
   useEffect(() => {
@@ -405,7 +421,10 @@ function animateElements() {
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Project not found</h2>
-          <p className="text-muted-foreground">The project you're looking for doesn't exist or you don't have access.</p>
+          <p className="text-muted-foreground">
+            The project you're looking for doesn't exist or you don't have
+            access.
+          </p>
           <Button onClick={() => navigate("/")} className="mt-4">
             Go Back Home
           </Button>
@@ -415,7 +434,6 @@ function animateElements() {
   }
 
   return (
-
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Project Header */}
       <div className="border-b bg-card/50 p-2">
@@ -424,7 +442,10 @@ function animateElements() {
             <SidebarTrigger className="p-0" />
             <FolderOpen className="h-6 w-6 text-blue-600" />
             <h1 className="text-2xl font-bold">{project.name}</h1>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Badge
+              variant="outline"
+              className="bg-blue-50 text-blue-700 border-blue-200"
+            >
               Project
             </Badge>
             {project.createdAt && (
@@ -461,7 +482,6 @@ function animateElements() {
               {isPreviewTransitioning ? "Loading..." : "Preview"}
             </Button>
             <TooltipProvider>
-
               <TooltipButton
                 onClick={toggleSidebar}
                 icon={
@@ -471,7 +491,9 @@ function animateElements() {
                     <Minimize2 className="h-4 w-4" />
                   )
                 }
-                tooltip={state === "expanded" ? "Expand window" : "Minimize window"}
+                tooltip={
+                  state === "expanded" ? "Expand window" : "Minimize window"
+                }
                 className="text-muted-foreground hover:text-foreground hidden md:block"
               />
             </TooltipProvider>
@@ -484,18 +506,23 @@ function animateElements() {
         <ResizablePanelGroup direction="horizontal">
           {/* HTML Editor */}
           <ResizablePanel defaultSize={33} minSize={25}>
-
             <div className="h-full flex flex-col">
               <div className="border-b p-3 bg-orange-50 dark:bg-orange-950/20">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-orange-600" />
                   <span className="font-medium text-sm">HTML</span>
                   {htmlFile ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200 text-xs"
+                    >
                       {htmlFile.name}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-50 text-gray-700 border-gray-200 text-xs"
+                    >
                       No file
                     </Badge>
                   )}
@@ -519,7 +546,7 @@ function animateElements() {
                     tabSize: 2,
                     insertSpaces: true,
                     formatOnPaste: true,
-                    formatOnType: true
+                    formatOnType: true,
                   }}
                 />
               </div>
@@ -536,11 +563,17 @@ function animateElements() {
                   <Palette className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-sm">CSS</span>
                   {cssFile ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200 text-xs"
+                    >
                       {cssFile.name}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-50 text-gray-700 border-gray-200 text-xs"
+                    >
                       No file
                     </Badge>
                   )}
@@ -564,7 +597,7 @@ function animateElements() {
                     tabSize: 2,
                     insertSpaces: true,
                     formatOnPaste: true,
-                    formatOnType: true
+                    formatOnType: true,
                   }}
                 />
               </div>
@@ -581,11 +614,17 @@ function animateElements() {
                   <Zap className="h-4 w-4 text-yellow-600" />
                   <span className="font-medium text-sm">JavaScript</span>
                   {jsFile ? (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200 text-xs"
+                    >
                       {jsFile.name}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="bg-gray-50 text-gray-700 border-gray-200 text-xs"
+                    >
                       No file
                     </Badge>
                   )}
@@ -609,7 +648,7 @@ function animateElements() {
                     tabSize: 2,
                     insertSpaces: true,
                     formatOnPaste: true,
-                    formatOnType: true
+                    formatOnType: true,
                   }}
                 />
               </div>
@@ -632,7 +671,12 @@ function animateElements() {
       )}
 
       {/* AI Agent Popover */}
-      <AgentPopover onFilesGenerated={handleFilesGenerated} currentHtml={htmlContent} currentCss={cssContent} currentJs={jsContent} />
+      <AgentPopover
+        onFilesGenerated={handleFilesGenerated}
+        currentHtml={htmlContent}
+        currentCss={cssContent}
+        currentJs={jsContent}
+      />
     </div>
   );
 }

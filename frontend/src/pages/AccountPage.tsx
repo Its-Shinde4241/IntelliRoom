@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 
 export default function AccountPage() {
-    const { user, updateProfile, isupating } = useAuthStore();
+    const { user, updateProfile, isUpdating } = useAuthStore();
     // const { open } = useSidebar();
 
     // Form states
@@ -96,8 +96,8 @@ export default function AccountPage() {
             setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
             setIsChangingPassword(false);
             toast.success("Password updated successfully!");
-        } catch (error: any) {
-            if (error.code === 'auth/wrong-password') {
+        } catch (error: unknown) {
+            if (error && typeof error === 'object' && 'code' in error && error.code === 'auth/wrong-password') {
                 toast.error("Current password is incorrect!");
             } else {
                 toast.error("Failed to update password. Please try again.");
@@ -244,9 +244,9 @@ export default function AccountPage() {
                                     <div className="flex gap-2">
                                         <Button
                                             onClick={handleProfileUpdate}
-                                            disabled={isupating}
+                                            disabled={isUpdating}
                                         >
-                                            {isupating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                            {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                             Save Changes
                                         </Button>
                                         <Button
@@ -258,7 +258,7 @@ export default function AccountPage() {
                                                     email: user?.email || "",
                                                 });
                                             }}
-                                            disabled={isupating}
+                                            disabled={isUpdating}
                                         >
                                             Cancel
                                         </Button>
@@ -381,9 +381,9 @@ export default function AccountPage() {
                                         <div className="flex gap-2">
                                             <Button
                                                 onClick={handlePasswordChange}
-                                                disabled={isupating}
+                                                disabled={isUpdating}
                                             >
-                                                {isupating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                                                {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                                 Update Password
                                             </Button>
                                             <Button
@@ -392,7 +392,7 @@ export default function AccountPage() {
                                                     setIsChangingPassword(false);
                                                     setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
                                                 }}
-                                                disabled={isupating}
+                                                disabled={isUpdating}
                                             >
                                                 Cancel
                                             </Button>

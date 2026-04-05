@@ -1,6 +1,6 @@
 import express, { Response } from "express";
 import http from "http";
-// import { WebSocketServer } from "ws";
+import dotenv from "dotenv";
 
 import cors from "cors";
 import Authrouter from "./routes/authRoutes";
@@ -14,14 +14,22 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
-app.use(cors({
-    origin: "http://localhost:5173", credentials: true
-}))
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter((origin): origin is string => Boolean(origin));
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
 
 app.get("/api", (req, res) => {
-    res.send("on intelliroom backend api");
-})
-
+  res.send("on intelliroom backend api");
+});
 
 app.use("/api/auth", Authrouter);
 app.use("/api/rooms", authenticate, roomRouter);
@@ -31,5 +39,7 @@ app.use("/api/agent", authenticate, AgentRouter);
 
 const PORT = 3001;
 server.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${process.env.PORT || PORT}`);
+  console.log(
+    `🚀 Server is running on http://localhost:${process.env.PORT || PORT}`,
+  );
 });

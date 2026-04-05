@@ -39,11 +39,11 @@ const useCodeStore = create<CodeStore>((set) => ({
             // If language is JS or TS (run in-browser)
             if (Number(langId) === 63) {
                 try {
-                    let logs: string[] = [];
+                    const logs: string[] = [];
                     const originalLog = console.log;
 
                     // Capture logs
-                    console.log = (...args: any[]) => {
+                    console.log = (...args: unknown[]) => {
                         const msg = args.join(" ");
                         logs.push(msg);
 
@@ -61,8 +61,8 @@ const useCodeStore = create<CodeStore>((set) => ({
 
                     console.log = originalLog; // restore
 
-                } catch (e: any) {
-                    const errorMessage = e.message || String(e);
+                } catch (e: unknown) {
+                    const errorMessage = e instanceof Error ? e.message : String(e);
                     set({ output: null, error: errorMessage });
                     toast.error(`Execution error: ${errorMessage}`);
                 }
@@ -98,7 +98,7 @@ const useCodeStore = create<CodeStore>((set) => ({
                         result = res.data;
                         break;
                     }
-                } catch (pollError: any) {
+                } catch (pollError: unknown) {
                     console.error("Error polling submission:", pollError);
                     toast.error("Error checking code execution status");
                     throw new Error("Failed to check execution status");
@@ -143,19 +143,24 @@ const useCodeStore = create<CodeStore>((set) => ({
                 toast.success("Code executed (no output)");
             }
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error while running code:", err);
 
             let errorMessage = "Unknown error occurred";
+            const error = err as Record<string, unknown>;
 
-            if (err.response?.data?.message) {
-                errorMessage = err.response.data.message;
-            } else if (err.response?.data) {
-                errorMessage = typeof err.response.data === 'string'
-                    ? err.response.data
-                    : JSON.stringify(err.response.data);
-            } else if (err.message) {
-                errorMessage = err.message;
+            if (error?.response && typeof error.response === 'object') {
+                const response = error.response as Record<string, unknown>;
+                const data = response?.data as Record<string, unknown>;
+                if (data?.message) {
+                    errorMessage = String(data.message);
+                } else if (typeof data === 'string') {
+                    errorMessage = data;
+                } else if (data) {
+                    errorMessage = JSON.stringify(data);
+                }
+            } else if (error?.message) {
+                errorMessage = String(error.message);
             }
 
             set({ output: null, error: errorMessage });
@@ -180,7 +185,7 @@ const useCodeStore = create<CodeStore>((set) => ({
                 style: { width: "auto", minWidth: "fit-content", padding: 6 },
             });
 
-        } catch (saveError: any) {
+        } catch (saveError: unknown) {
             console.error("Error saving code:", saveError);
         }
     },

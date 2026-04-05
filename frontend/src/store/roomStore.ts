@@ -4,15 +4,15 @@ import { api } from '@/lib/axiosInstance';
 import { toast } from "sonner";
 
 type FileInfo = {
-  id: string;
+  fileId: string;
   name: string;
   type: string;
 }
 interface Room {
-  id: string;
-  name: string; // Changed from 'title' to match backend
+  roomId: string;
+  name: string;
+  createdBy?: string;
   password?: string;
-  userId: string;
   files: FileInfo[];
   createdAt?: string;
   updatedAt?: string;
@@ -45,11 +45,11 @@ const useRoomStore = create<RoomState>((set, get) => ({
   loading: false,
   error: null,
 
-  getUserRooms: async (userId: string) => {
+  getUserRooms: async () => {
     try {
       set({ loading: true, error: null });
-      const response = await api.get<Room[]>(`/rooms/user/${userId}`);
-      set({ rooms: response.data });
+      const response = await api.get<{ userId: string; rooms: Room[] }>(`/rooms/user`);
+      set({ rooms: response.data.rooms });
       // toast.success("Rooms loaded successfully", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
     } catch (error) {
       toast.error("Failed to fetch rooms", { duration: 2000, style: { width: "auto", minWidth: "fit-content", padding: 10 }, });
@@ -67,7 +67,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
 
       const rooms = get().rooms;
       const updatedRooms = rooms.map(room =>
-        room.id === roomId ? response.data : room
+        room.roomId === roomId ? response.data : room
       );
       set({ rooms: updatedRooms });
       toast.success("Room loaded successfully");
@@ -109,11 +109,11 @@ const useRoomStore = create<RoomState>((set, get) => ({
       const response = await api.put<Room>(`/rooms/${roomId}`, updates);
 
       const rooms = get().rooms.map(room =>
-        room.id === roomId ? { ...room, ...response.data } : room
+        room.roomId === roomId ? { ...room, ...response.data } : room
       );
       set({ rooms });
 
-      if (get().activeRoom?.id === roomId) {
+      if (get().activeRoom?.roomId === roomId) {
         set({ activeRoom: { ...get().activeRoom!, ...response.data } });
       }
       toast.success("Room updated successfully");
@@ -130,13 +130,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
   deleteRoom: async (roomId: string) => {
     try {
       set({ loading: true, error: null });
-      const roomName = get().rooms.find(room => room.id === roomId)?.name || 'Room';
+      const roomName = get().rooms.find(room => room.roomId === roomId)?.name || 'Room';
       await api.delete(`/rooms/${roomId}`);
 
-      const rooms = get().rooms.filter(room => room.id !== roomId);
+      const rooms = get().rooms.filter(room => room.roomId !== roomId);
       set({ rooms });
 
-      if (get().activeRoom?.id === roomId) {
+      if (get().activeRoom?.roomId === roomId) {
         set({ activeRoom: null });
       }
       toast.success(`"${roomName}" deleted successfully`);
@@ -155,12 +155,12 @@ const useRoomStore = create<RoomState>((set, get) => ({
       set({ loading: true, error: null });
       const response = await api.get<File[]>(`/rooms/${roomId}/files`);
 
-      if (get().activeRoom?.id === roomId) {
+      if (get().activeRoom?.roomId === roomId) {
         set({ activeRoom: { ...get().activeRoom!, files: response.data } });
       }
 
       const rooms = get().rooms.map(room =>
-        room.id === roomId ? { ...room, files: response.data } : room
+        room.roomId === roomId ? { ...room, files: response.data } : room
       );
       set({ rooms });
       toast.success("Files loaded successfully");
@@ -178,7 +178,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
     const updatedRooms = state.rooms.map(room => ({
       ...room,
       files: room.files.map(file =>
-        file.id === fileId ? { ...file, ...updates } : file
+        file.fileId === fileId ? { ...file, ...updates } : file
       )
     }));
 
@@ -189,7 +189,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
       const updatedActiveRoom = {
         ...state.activeRoom,
         files: state.activeRoom.files.map(file =>
-          file.id === fileId ? { ...file, ...updates } : file
+          file.fileId === fileId ? { ...file, ...updates } : file
         )
       };
       set({ activeRoom: updatedActiveRoom });
@@ -200,7 +200,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
     const state = get();
     const updatedRooms = state.rooms.map(room => ({
       ...room,
-      files: room.files.filter(file => file.id !== fileId)
+      files: room.files.filter(file => file.fileId !== fileId)
     }));
 
     set({ rooms: updatedRooms });
@@ -209,7 +209,7 @@ const useRoomStore = create<RoomState>((set, get) => ({
     if (state.activeRoom) {
       const updatedActiveRoom = {
         ...state.activeRoom,
-        files: state.activeRoom.files.filter(file => file.id !== fileId)
+        files: state.activeRoom.files.filter(file => file.fileId !== fileId)
       };
       set({ activeRoom: updatedActiveRoom });
     }
@@ -219,13 +219,13 @@ const useRoomStore = create<RoomState>((set, get) => ({
     const state = get();
     const updatedRooms = state.rooms.map(room => ({
       ...room,
-      files: room.id === roomId ? [...room.files, file] : room.files
+      files: room.roomId === roomId ? [...room.files, file] : room.files
     }));
 
     set({ rooms: updatedRooms });
 
     // Also update active room if it's the target room
-    if (state.activeRoom?.id === roomId) {
+    if (state.activeRoom?.roomId === roomId) {
       const updatedActiveRoom = {
         ...state.activeRoom,
         files: [...state.activeRoom.files, file]

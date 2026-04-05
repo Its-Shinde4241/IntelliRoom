@@ -4,7 +4,7 @@ import { FolderOpen, type LucideIcon } from 'lucide-react';
 import { api } from '@/lib/axiosInstance';
 
 export interface WebDevFile {
-    id: string;
+    fileId: string;
     name: string;
     type: "html" | "css" | "js";
     content?: string;
@@ -12,16 +12,16 @@ export interface WebDevFile {
     roomId?: string;
     createdAt?: string;
     updatedAt?: string;
-    userId: string;
+    createdBy?: string;
 }
 
 export interface Project {
-    id: string;
+    projectId: string;
     name: string;
     icon: LucideIcon;
     files: WebDevFile[];
     isActive?: boolean;
-    userId: string;
+    createdBy?: string;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -46,14 +46,29 @@ interface ProjectState {
     clearError: () => void;
 }
 
-const transformProject = (backendProject: any): Project => ({
-    ...backendProject,
-    icon: FolderOpen,
-    files: backendProject.files || [],
-});
+const transformProject = (backendProject: unknown): Project => {
+    const project = backendProject as Record<string, unknown>;
+    return {
+        projectId: String(project.projectId || ''),
+        name: String(project.name || ''),
+        icon: FolderOpen,
+        files: (project.files as WebDevFile[]) || [],
+        isActive: project.isActive as boolean,
+        createdBy: project.createdBy as string,
+        createdAt: project.createdAt as string,
+        updatedAt: project.updatedAt as string,
+    };
+};
 
-const handleError = (error: any, defaultMessage: string) => {
-    return error?.response?.data?.error || error?.message || defaultMessage;
+const handleError = (error: unknown, defaultMessage: string): string => {
+    const err = error as Record<string, unknown>;
+    if (err?.response && typeof err.response === 'object') {
+        const response = err.response as Record<string, unknown>;
+        const data = response?.data as Record<string, unknown>;
+        if (data?.error) return String(data.error);
+    }
+    if (err?.message) return String(err.message);
+    return defaultMessage;
 };
 
 
@@ -66,10 +81,11 @@ export const useProjectStore = create<ProjectState>()(
         fetchUserProjects: async () => {
             set({ loading: true, error: null });
             try {
-                const response = await api.get('/projects/');
-                const transformedProjects = (response.data as any[]).map(transformProject);
+                const response = await api.get<{ userCode: string; projects: unknown[] }>('/projects/');
+                const projectsData = response.data.projects || [];
+                const transformedProjects = (projectsData as unknown[]).map(transformProject);
                 set({ projects: transformedProjects, loading: false });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to fetch projects'), loading: false });
                 throw error;
             }
@@ -80,14 +96,14 @@ export const useProjectStore = create<ProjectState>()(
             try {
                 const response = await api.post('/projects', { projectName });
                 const newProject = transformProject(response.data);
-                const projectfiles = await api.get(`/projects/${newProject.id}/files`);
+                const projectfiles = await api.get(`/projects/${newProject.projectId}/files`);
                 newProject.files = projectfiles.data as WebDevFile[];
                 set(state => ({
                     projects: [...state.projects, newProject],
                     loading: false,
                 }));
                 return newProject;
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to create project'), loading: false });
                 throw error;
             }
@@ -108,11 +124,11 @@ export const useProjectStore = create<ProjectState>()(
 
                 set(state => ({
                     projects: state.projects.map(project =>
-                        project.id === projectId ? updatedProject : project
+                        project.projectId === projectId ? updatedProject : project
                     ),
                     loading: false,
                 }));
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to update project'), loading: false });
                 throw error;
             }
@@ -123,10 +139,10 @@ export const useProjectStore = create<ProjectState>()(
             try {
                 await api.delete(`/projects/${projectId}`);
                 set(state => ({
-                    projects: state.projects.filter(project => project.id !== projectId),
+                    projects: state.projects.filter(project => project.projectId !== projectId),
                     loading: false,
                 }));
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to delete project'), loading: false });
                 throw error;
             }
@@ -138,11 +154,11 @@ export const useProjectStore = create<ProjectState>()(
                 const response = await api.get(`/projects/${projectId}/files`);
                 set(state => ({
                     projects: state.projects.map(project =>
-                        project.id === projectId ? { ...project, files: response.data as WebDevFile[] } : project
+                        project.projectId === projectId ? { ...project, files: response.data as WebDevFile[] } : project
                     ),
                 }));
                 return response.data;
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to fetch project files') });
                 throw error;
             }
@@ -156,17 +172,17 @@ export const useProjectStore = create<ProjectState>()(
 
                 set(state => ({
                     projects: state.projects.map(project =>
-                        project.id === projectId ? {
+                        project.projectId === projectId ? {
                             ...project,
                             files: project.files.map(file =>
-                                file.id === fileId && updatedFile && typeof updatedFile === 'object'
+                                file.fileId === fileId && updatedFile && typeof updatedFile === 'object'
                                     ? { ...file, ...updatedFile }
                                     : file
                             )
                         } : project
                     ),
                 }));
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to update project file') });
                 throw error;
             }
@@ -178,13 +194,13 @@ export const useProjectStore = create<ProjectState>()(
                 await api.delete(`/projects/${projectId}/files/${fileId}`);
                 set(state => ({
                     projects: state.projects.map(project =>
-                        project.id === projectId ? {
+                        project.projectId === projectId ? {
                             ...project,
-                            files: project.files.filter(file => file.id !== fileId)
+                            files: project.files.filter(file => file.fileId !== fileId)
                         } : project
                     ),
                 }));
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to delete project file') });
                 throw error;
             }
@@ -198,17 +214,17 @@ export const useProjectStore = create<ProjectState>()(
 
                 set(state => ({
                     projects: state.projects.map(project =>
-                        project.id === projectId ? {
+                        project.projectId === projectId ? {
                             ...project,
                             files: project.files.map(file =>
-                                file.id === fileId && updatedFile && typeof updatedFile === 'object'
+                                file.fileId === fileId && updatedFile && typeof updatedFile === 'object'
                                     ? { ...file, ...updatedFile }
                                     : file
                             )
                         } : project
                     ),
                 }));
-            } catch (error: any) {
+            } catch (error: unknown) {
                 set({ error: handleError(error, 'Failed to rename project file') });
                 throw error;
             }
@@ -216,7 +232,7 @@ export const useProjectStore = create<ProjectState>()(
 
         runProject: (projectId: string) => {
             const { projects } = get();
-            const project = projects.find(p => p.id === projectId);
+            const project = projects.find(p => p.projectId === projectId);
 
             if (!project) {
                 console.error('Project not found');

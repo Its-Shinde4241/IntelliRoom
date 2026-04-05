@@ -19,10 +19,9 @@ function Homepage() {
   const { rooms, createRoom } = useRoomStore();
 
   // Handler functions for popovers
-  const handleCreateProject = async (projectName: string) => {
+  const handleCreateProject = async (projectName: string): Promise<void> => {
     try {
       await createProject(projectName);
-      return true;
     } catch (error) {
       console.error('Failed to create project:', error);
       throw error;
@@ -49,19 +48,19 @@ function Homepage() {
 
   const recentItems: RecentItem[] = [
     ...projects.slice(0, 3).map((project): RecentItem => ({
-      id: project.id,
+      id: project.projectId,
       name: project.name,
       type: "project" as const,
       lastModified: new Date(project.updatedAt || project.createdAt || new Date()).toLocaleDateString()
     })),
     ...files.slice(0, 2).map((file): RecentItem => ({
-      id: file.id,
+      id: file.fileId,
       name: file.name,
       type: "file" as const,
       lastModified: new Date(file.updatedAt || file.createdAt || new Date()).toLocaleDateString()
     })),
     ...rooms.slice(0, 2).map((room): RecentItem => ({
-      id: room.id,
+      id: room.roomId,
       name: room.name,
       type: "room" as const,
       lastModified: new Date(room.updatedAt || room.createdAt || new Date()).toLocaleDateString()
